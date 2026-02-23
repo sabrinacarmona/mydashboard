@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #121212;
+    color: #f8fafc;
+    overflow-x: hidden;
+    margin: 0;
+    transition: background-color 0.5s ease;
+}
+
+/* Zen Mode CSS */
+body.zen-active {
+    background-color: #000;
+}
+
+body.zen-active .hide-in-zen {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.95);
+}
+
+body.zen-active .zen-focus {
+    transform: scale(1.05);
+    z-index: 50;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.transition-all-slow {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphism utilities */
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Ambient glow effects */
+.ambient-glow-subtle {
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, rgba(18, 18, 18, 0) 60%);
+    top: -300px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+body.zen-active .ambient-glow-subtle {
+    opacity: 0;
+}
+
+/* Scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Kanban Board Styling */
+.kanban-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+}
+
+.kanban-dropzone {
+    flex-grow: 1;
+    min-height: 100px;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.kanban-dropzone.drag-over {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.task-item {
+    cursor: grab;
+    user-select: none;
+}
+
+.task-item:active {
+    cursor: grabbing;
+}
+
+.task-item.dragging {
+    opacity: 0.5;
+}
