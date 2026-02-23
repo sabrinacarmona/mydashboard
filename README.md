@@ -1,39 +1,48 @@
-# Personal-OS v2.0
+# Sabrina's Control Centre (v17.0) 🚀
 
-A "Sunsama-style" Personal Life Optimization Dashboard designed for deep focus and intentionality.
+A private, "Apple-Dark-Mode" inspired life-optimization dashboard designed for deep focus and intentionality.
 
-This project transitions from a static links dashboard into a living, private intelligence hub that securely interacts with your Google Calendar and Gmail directly from your local machine, keeping you out of the corporate grid.
+This project evolved from a static links dashboard into a living, private intelligence hub that securely interacts with your Google Calendar, scans for upcoming travel, and provides real-time environmental context—all directly from your local machine, keeping you out of the corporate grid.
 
 ## Core Features
-1. **Zen Mode**: A CSS-driven focus mode that fades the entire dashboard into black and highlights only your current active task to prevent context switching.
-2. **3-Column Architecture**:
-   - **Kanban Tasks**: A drag-and-drop board for To-Do, Doing, and Done. Data is saved locally to avoid third-party servers.
-   - **Rolling Schedule**: A seamless 3-day view of your Google Calendar.
-   - **Intelligent Inbox**: Fetches your latest unread actionable emails and automatically scans for upcoming Flight/Hotel confirmations to build a Travel itinerary.
+1. **Zenith Focus Mode**: Hit `<kbd>Enter Zen Mode</kbd>` to fade the entire dashboard into black, highlighting only your current active task alongside a live Pomodoro countdown to prevent context switching.
+2. **Heads-Up Display (HUD)**: A seamless glassmorphism navigation widget tracking real-time local Time, Date, and live Weather (powered by Open-Meteo).
+3. **3-Column Architecture**:
+   - **Actionable Inbox**: Automatically syncs your primary unread Google Mail (Gmail) messages to the frontend for rapid triage.
+   - **Kanban Tasks & Trips**: A drag-and-drop board for `Focus / Doing` and `Next Up / Todo`. Your tasks are saved locally (`tasks.json`). Underneath, a chronological list of your upcoming Flights & Hotels (synced from your personal Google Calendars).
+   - **Events (Calendar)**: A rolling 30-day view of your Google Calendar commitments.
 
-## Architecture
+## Architecture & Tech Stack
 - **Frontend**: Lightweight HTML, Vanilla JavaScript, and Tailwind CSS (via CDN).
-- **Backend**: A local Node.js / Express server running on `localhost:3000`.
-- **Security**: The server handles the Google OAuth 2.0 flow natively. Your `credentials.json` and generated `token.json` are strictly `.gitignored` ensuring this sensitive access remains only on your Macbook.
-- **Task Storage**: A local `tasks.json` database.
-
-## Prerequisites
-To run Personal-OS v2.0 on your machine, you need:
-1. Node.js installed.
-2. A `credentials.json` file from Google Cloud Console placed in the root directory (see Setup below).
+- **Aesthetic**: Custom macOS "Midnight" Black (`#000000`), heavy `backdrop-filter: blur(20px)` glassmorphism, and Apple's `SF Pro` typography.
+- **Backend**: A local Vanilla Node.js / Express server running on `localhost:3000`.
+- **Security First**: The server securely handles the Google OAuth 2.0 flow natively. Your `credentials.json` and generated `token.json` are strictly `.gitignore`d—ensuring your sensitive Cloud API access never leaves your Macbook.
 
 ## Setup & Installation
 
-1. **Clone the repository** (if not already local)
-2. **Install dependencies**:
+To run Sabrina's Control Centre locally:
+
+1. **Install Node.js** (v18+ recommended).
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
-3. **Add Google Credentials**:
-   Place your OAuth 2.0 `credentials.json` directly into the root folder. (Ensure this file is in `.gitignore`).
-4. **Start the Engine**:
+
+3. **Add Google Cloud Credentials**:
+   - Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
+   - Enable the **Google Calendar API** and **Gmail API**.
+   - Create an OAuth 2.0 Client ID (Desktop Application) and download the JSON file.
+   - Rename the file to `credentials.json` and place it directly into the root folder of this repository. *(Note: This file is ignored by git).*
+
+4. **Boot the Engine**:
    ```bash
    node server.js
    ```
-5. **Launch**:
-   Open a browser and navigate to `http://localhost:3000`. Click "Authorize with Google" on first launch to connect your accounts.
+
+5. **Launch & Authorize**:
+   - Open a browser and navigate to `http://localhost:3000`.
+   - On the very first launch, you will be prompted to click **Authorize with Google**. Follow the terminal/browser prompts to generate your local `token.json` file.
+   - Enjoy the focused Control Centre.
+
+---
+*Built with ❤️ via Agentic AI.*
