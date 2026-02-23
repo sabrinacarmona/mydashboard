@@ -1,10 +1,11 @@
 {
   "name": "mydashboard",
   "version": "1.0.0",
-  "description": "",
+  "description": "A private, \"Apple-Dark-Mode\" inspired life-optimization dashboard designed for deep focus and intentionality.",
   "main": "test-dashboard.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +17,13 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "googleapis": "^171.4.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sabrinacarmona/sabrina-control-centre.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sabrinacarmona/sabrina-control-centre/issues"
+  },
+  "homepage": "https://github.com/sabrinacarmona/sabrina-control-centre#readme"
 }
