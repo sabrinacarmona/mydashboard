@@ -45,6 +45,8 @@
             }
         }
     </style>
+    <!-- Mobile Drag and Drop Polyfill for iOS Safari Parity -->
+    <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
 </head>
 
 <body class="min-h-screen relative flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
@@ -93,10 +95,10 @@
             </div>
 
             <!-- Auth Status -->
-            <div id="auth-status"
-                class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500">
+            <button id="auth-status" onclick="document.getElementById('auth-modal').classList.remove('hidden')"
+                class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500 cursor-pointer hover:bg-red-500/10 active:scale-95">
                 Google Not Connected
-            </div>
+            </button>
 
             <!-- Zen Mode Toggle -->
             <button id="zen-toggle"
@@ -524,7 +526,8 @@
                 if (data.error) throw new Error(data.error);
 
                 authStatusEl.textContent = '● Google Connected';
-                authStatusEl.className = 'text-sm font-medium px-4 py-2 rounded-full glass border-green-500/30 text-green-400 hide-in-zen';
+                authStatusEl.className = 'text-sm font-medium px-4 py-2 rounded-full glass border-green-500/30 text-green-400 hide-in-zen cursor-default';
+                authStatusEl.onclick = null;
 
                 renderFn(data, document.getElementById(containerId));
             } catch (err) {
