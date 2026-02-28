@@ -189,6 +189,29 @@ app.post('/api/auth/token', async (req, res) => {
     }
 });
 
+// Handle OAuth redirect from Google
+app.get('/oauth2callback', async (req, res) => {
+    const code = req.query.code;
+    if (!code) {
+        return res.send(`<h2>Authentication Failed</h2><p>No code returned.</p><a href="/">Return</a>`);
+    }
+    try {
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+        const { tokens } = await oAuth2Client.getToken(code);
+        oAuth2Client.setCredentials(tokens);
+        fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+        console.log('Token stored via callback redirect');
+
+        // Redirect back to dashboard on success
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error in oauth2callback', err);
+        res.send(`<h2>Authentication Failed</h2><p>${err.message}</p><a href="/">Return</a>`);
+    }
+});
+
 // --- Tasks Endpoints (SQLite) ---
 app.get('/api/tasks', (req, res) => {
     const context = req.query.context || 'both';
