@@ -277,137 +277,136 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Column 2: Tasks & Upcoming Trips Stacked -->
-            <div class="lg:col-span-6 flex flex-col space-y-6 h-auto lg:h-[80vh] hide-in-zen transition-all-slow">
-
-                <!-- Daily Rituals (Top of Column 2) -->
-                <div class="rounded-2xl p-4 glass-card shrink-0">
-                    <h2 class="text-sm font-semibold flex items-center text-white/90 mb-3">
-                        <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                        Daily Rituals
-                    </h2>
-                    <div id="rituals-container" class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
-                        <div class="text-xs text-white/40 italic">Loading rituals...</div>
-                    </div>
-                </div>
-
-                <!-- Tasks (Top Half) -->
-                <div class="rounded-2xl p-6 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
-                    <h2 class="text-lg font-semibold flex items-center text-white/90 mb-4">
-                        <svg class="w-5 h-5 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Tasks
-                    </h2>
-                    <form id="quick-add-form" class="mb-4 relative">
-                        <input type="text" id="quick-add-input"
-                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-12 text-sm text-white focus:outline-none focus:border-soft-amber transition-colors"
-                            placeholder="Type a task and hit Enter...">
-                        <span
-                            class="absolute left-4 top-3.5 text-white/40 font-mono text-xs border border-white/20 rounded px-1">A</span>
-                        <button type="submit" class="absolute right-3 top-2.5 p-1 text-white/40 hover:text-white/80">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4">
-                                </path>
-                            </svg>
-                        </button>
-                    </form>
-
-                    <div class="flex-grow overflow-y-auto pr-2 min-h-0 space-y-4 kanban-container">
-                        <div>
-                            <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1">Focus /
-                                Doing
-                            </h3>
-                            <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
-                                id="list-doing" data-status="doing">
-                            </div>
-                        </div>
-                        <div>
-                            <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1 mt-4">Next
-                                Up
-                                / Todo</h3>
-                            <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
-                                id="list-todo" data-status="todo">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trips (Bottom Half) -->
-                <div class="rounded-2xl p-5 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
-                    <h2 class="text-md font-semibold flex items-center text-white/90 mb-4 shrink-0">
-                        <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                        Upcoming Trips
-                    </h2>
-                    <div id="trips-container" class="flex-grow overflow-y-auto pr-2 space-y-3">
-                        <div class="text-sm text-white/40 italic">Syncing Calendar data...</div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Column 3: Events & Pomodoro -->
-            <div
-                class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
-
-                <!-- Focus Heatmap -->
-                <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
-                    <h2 class="text-sm font-semibold flex items-center justify-between text-white/90 mb-4">
-                        <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-soft-amber" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            Focus Heatmap
-                        </span>
-                        <span id="pomodoro-stats" class="text-xs text-white/50 font-mono tracking-wider">0m TODAY</span>
-                    </h2>
-                    <div id="focus-heatmap-container"
-                        class="flex flex-row items-end justify-between space-x-1 h-14 w-full mt-2">
-                        <!-- Bars injected via JS -->
-                    </div>
-                </div>
-
-                <div class="mb-6 shrink-0">
-                    <h2 class="text-lg font-semibold flex items-center text-white/90 mb-1">
-                        <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Events
-                    </h2>
-                </div>
-                <div id="calendar-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
-                    <div class="flex flex-col items-center justify-center h-full text-white/40">
-                        <svg class="w-8 h-8 mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
-                        </svg>
-                        <span>Loading Events...</span>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Invisible structure to align perfectly with Schedule bottom half -->
-            <div class="flex-1 min-h-[300px] pointer-events-none"></div>
         </div>
+
+        <!-- Column 2: Tasks & Upcoming Trips Stacked -->
+        <div class="lg:col-span-6 flex flex-col space-y-6 h-auto lg:h-[80vh] hide-in-zen transition-all-slow">
+
+            <!-- Daily Rituals (Top of Column 2) -->
+            <div class="rounded-2xl p-4 glass-card shrink-0">
+                <h2 class="text-sm font-semibold flex items-center text-white/90 mb-3">
+                    <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    Daily Rituals
+                </h2>
+                <div id="rituals-container" class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                    <div class="text-xs text-white/40 italic">Loading rituals...</div>
+                </div>
+            </div>
+
+            <!-- Tasks (Top Half) -->
+            <div class="rounded-2xl p-6 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+                <h2 class="text-lg font-semibold flex items-center text-white/90 mb-4">
+                    <svg class="w-5 h-5 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Tasks
+                </h2>
+                <form id="quick-add-form" class="mb-4 relative">
+                    <input type="text" id="quick-add-input"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-12 text-sm text-white focus:outline-none focus:border-soft-amber transition-colors"
+                        placeholder="Type a task and hit Enter...">
+                    <span
+                        class="absolute left-4 top-3.5 text-white/40 font-mono text-xs border border-white/20 rounded px-1">A</span>
+                    <button type="submit" class="absolute right-3 top-2.5 p-1 text-white/40 hover:text-white/80">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="flex-grow overflow-y-auto pr-2 min-h-0 space-y-4 kanban-container">
+                    <div>
+                        <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1">Focus /
+                            Doing
+                        </h3>
+                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                            id="list-doing" data-status="doing">
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1 mt-4">Next
+                            Up
+                            / Todo</h3>
+                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                            id="list-todo" data-status="todo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trips (Bottom Half) -->
+            <div class="rounded-2xl p-5 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+                <h2 class="text-md font-semibold flex items-center text-white/90 mb-4 shrink-0">
+                    <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    Upcoming Trips
+                </h2>
+                <div id="trips-container" class="flex-grow overflow-y-auto pr-2 space-y-3">
+                    <div class="text-sm text-white/40 italic">Syncing Calendar data...</div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Column 3: Events & Pomodoro -->
+        <div
+            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
+
+            <!-- Focus Heatmap -->
+            <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
+                <h2 class="text-sm font-semibold flex items-center justify-between text-white/90 mb-4">
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Focus Heatmap
+                    </span>
+                    <span id="pomodoro-stats" class="text-xs text-white/50 font-mono tracking-wider">0m TODAY</span>
+                </h2>
+                <div id="focus-heatmap-container"
+                    class="flex flex-row items-end justify-between space-x-1 h-14 w-full mt-2">
+                    <!-- Bars injected via JS -->
+                </div>
+            </div>
+
+            <div class="mb-6 shrink-0">
+                <h2 class="text-lg font-semibold flex items-center text-white/90 mb-1">
+                    <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Events
+                </h2>
+            </div>
+            <div id="calendar-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
+                <div class="flex flex-col items-center justify-center h-full text-white/40">
+                    <svg class="w-8 h-8 mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <span>Loading Events...</span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Invisible structure to align perfectly with Schedule bottom half -->
+        <div class="flex-1 min-h-[300px] pointer-events-none"></div>
+    </div>
     </div>
 
     <!-- Zen Focus Overlay -->
