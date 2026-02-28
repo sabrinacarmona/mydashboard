@@ -31,6 +31,14 @@ const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 
 // --- Initialization: Database ---
 const DB_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/database.db' : path.join(__dirname, 'database.db');
+
+// Ensure the directory exists before attempting to open the database
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+    console.log(`[Database] Directory not found. Creating: ${dbDir}`);
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new Database(DB_PATH);
 
 db.exec(`
