@@ -392,28 +392,20 @@ app.get('/api/calendar', async (req, res) => {
     }
 });
 
-// --- Inbox Endpoint (Cached) ---
+// --- Inbox Endpoint (Uncached for Real-Time Archiving) ---
 app.get('/api/inbox', async (req, res) => {
-    const cacheKey = 'inboxData';
-    const cachedData = apiCache.get(cacheKey);
-    if (cachedData) {
-        res.setHeader('X-Cache', 'HIT');
-        return res.json(cachedData);
-    }
-
     try {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // Get actionable messages (in inbox, not promotions/social)
+        // Get actionable messages (anything in the inbox)
         const response = await gmail.users.messages.list({
             userId: 'me',
-            q: 'in:inbox -category:promotions -category:social',
+            q: 'in:inbox',
             maxResults: 5
         });
 
         if (!response.data.messages) {
-            apiCache.set(cacheKey, []);
             return res.json([]);
         }
 
@@ -430,8 +422,6 @@ app.get('/api/inbox', async (req, res) => {
             return { id: msg.id, snippet: detail.data.snippet, subject, from };
         }));
 
-        res.setHeader('X-Cache', 'MISS');
-        apiCache.set(cacheKey, messages);
         res.json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
