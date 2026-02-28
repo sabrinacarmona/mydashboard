@@ -1541,7 +1541,24 @@
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     console.error("MailCraft error:", err);
-                    outputText.textContent = `Error: ${err.message}`;
+                    let displayMeta = err.message;
+
+                    // The Gemini SDK often passes deeply stringified JSON errors instead of flat text.
+                    // We attempt to parse it cleanly, otherwise fallback to the raw message.
+                    try {
+                        let innerObj = JSON.parse(err.message);
+                        if (innerObj.error && innerObj.error.message) {
+                            let deepObj = JSON.parse(innerObj.error.message);
+                            if (deepObj.error && deepObj.error.message) {
+                                displayMeta = deepObj.error.message;
+                            }
+                        } else if (innerObj.error) {
+                            displayMeta = innerObj.error;
+                        }
+                    } catch (e) { /* use raw */ }
+
+                    // Make the error UI look more native
+                    outputText.innerHTML = `<span class="text-red-400 font-semibold mb-1 block">API Connection Error</span><span class="text-white/60 text-xs">${displayMeta}</span>`;
                 }
             } finally {
                 genBtn.disabled = false;
