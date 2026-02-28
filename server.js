@@ -254,11 +254,26 @@ app.post('/api/notes', (req, res) => {
 // --- Daily Rituals Endpoints (SQLite) ---
 app.get('/api/rituals', (req, res) => {
     const today = new Date().toDateString();
-    let rituals = db.prepare('SELECT * FROM rituals').all();
+    const context = req.query.context || 'both';
+
+    try {
+        db.prepare('ALTER TABLE rituals ADD COLUMN context_mode TEXT DEFAULT "both"').run();
+    } catch (e) { /* Column already exists */ }
+
+    let rituals;
+    if (context === 'both') {
+        rituals = db.prepare('SELECT * FROM rituals').all();
+    } else {
+        rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
+    }
 
     if (rituals.length > 0 && rituals[0].lastResetDate !== today) {
         db.prepare('UPDATE rituals SET completed = 0, lastResetDate = ?').run(today);
-        rituals = db.prepare('SELECT * FROM rituals').all(); // Fetch updated
+        if (context === 'both') {
+            rituals = db.prepare('SELECT * FROM rituals').all(); // Fetch updated
+        } else {
+            rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
+        }
     }
 
     res.json(rituals.map(r => ({ ...r, completed: r.completed === 1 })));
@@ -394,7 +409,8 @@ app.get('/api/inbox', async (req, res) => {
 // --- Trips Endpoint (Parsing Inbox & Calendar) ---
 // Not heavily cached since it processes multiple calendars, maybe 5 min cache too.
 app.get('/api/trips', async (req, res) => {
-    const cacheKey = 'tripsData';
+    const context = req.query.context || 'both';
+    const cacheKey = `tripsData_${context}`;
     const cachedData = apiCache.get(cacheKey);
     if (cachedData) {
         res.setHeader('X-Cache', 'HIT');
@@ -437,8 +453,28 @@ app.get('/api/trips', async (req, res) => {
             return { tripType, cleanTitle, extractedDate };
         };
 
+        let calendarIds = ['primary'];
+        if (context === 'professional') {
+            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : ['primary'];
+        } else if (context === 'personal') {
+            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+        } else {
+            const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = Array.from(new Set([...profCals, ...persCals]));
+            if (calendarIds.length === 0) calendarIds = ['primary'];
+        }
+        calendarIds = calendarIds.map(id => id.trim());
+
         const calListResponse = await calendar.calendarList.list();
-        const calPromises = calListResponse.data.items.map(cal => {
+        let targetCals = calListResponse.data.items;
+
+        // Filter by context calendarIds if they are not 'primary' fallback
+        if (calendarIds[0] !== 'primary') {
+            targetCals = targetCals.filter(cal => calendarIds.includes(cal.id));
+        }
+
+        const calPromises = targetCals.map(cal => {
             return calendar.events.list({
                 calendarId: cal.id,
                 timeMin: new Date().toISOString(),

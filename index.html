@@ -54,7 +54,8 @@
     <div
         class="w-full max-w-[1400px] flex justify-between items-center mb-10 transition-all duration-700 relative z-50">
         <h1 class="text-2xl font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500">
-            Sabrina's <span class="text-soft-amber">Control Centre</span></h1>
+            Sabrina's <span style="color: var(--accent-text)" class="transition-colors duration-800">Control
+                Centre</span></h1>
 
         <!-- Center Context Widget (HUD) -->
         <div id="header-hud"
@@ -300,8 +301,9 @@
                 <div class="relative z-10 flex flex-col items-center justify-center h-full">
                     <div id="flow-display"
                         class="text-5xl md:text-7xl font-light tracking-widest text-white/90 mb-2 font-mono drop-shadow-lg">
-                        00:00</div>
-                    <div class="text-xs tracking-[0.2em] text-white/30 uppercase">Time in Flow</div>
+                    </div>
+                    <div id="zen-flow-text" class="text-xs tracking-[0.2em] text-white/30 uppercase hidden">Time in Flow
+                    </div>
                 </div>
             </div>
 
@@ -383,6 +385,15 @@
                 mainLayout.style.opacity = '0.3';
                 mainLayout.style.transform = 'scale(0.99)';
                 setTimeout(() => {
+                    // Hard clear the DOM arrays so they physically wipe out before the refetch completes
+                    localTasks = [];
+                    globalCalendarEvents = [];
+                    document.getElementById('inbox-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+                    document.getElementById('list-doing').innerHTML = '';
+                    document.getElementById('list-todo').innerHTML = '';
+                    document.getElementById('trips-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+                    document.getElementById('rituals-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+
                     loadDashboardData();
                     setTimeout(() => {
                         mainLayout.style.opacity = '1';
@@ -962,6 +973,15 @@
         }
 
         function updateFlowDisplay() {
+            const flowText = document.getElementById('zen-flow-text');
+            if (!isFlowActive) {
+                flowDisplay.textContent = "";
+                if (flowText) flowText.classList.add('hidden');
+                return;
+            } else {
+                if (flowText) flowText.classList.remove('hidden');
+            }
+
             const totalSeconds = getFlowTimeSeconds();
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
