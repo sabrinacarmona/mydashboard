@@ -6,6 +6,10 @@ const { google } = require('googleapis');
 require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
 
+// --- Caching and Database Dependencies ---
+const Database = require('better-sqlite3');
+const NodeCache = require('node-cache');
+
 let ai = null;
 if (process.env.GEMINI_API_KEY) {
     ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -24,7 +28,83 @@ app.use(express.static(path.join(__dirname)));
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.readonly'];
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+
+// --- Initialization: Database ---
+const db = new Database(path.join(__dirname, 'database.db'));
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    status TEXT
+  );
+  CREATE TABLE IF NOT EXISTS rituals (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    completed INTEGER DEFAULT 0,
+    lastResetDate TEXT
+  );
+  CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    content TEXT
+  );
+`);
+
+// --- Initialization: Cache ---
+// TTL is 300 seconds (5 minutes)
+const apiCache = new NodeCache({ stdTTL: 300 });
+
+// --- One-Time Flat File to SQLite Migration ---
 const TASKS_PATH = path.join(__dirname, 'tasks.json');
+const RITUALS_PATH = path.join(__dirname, 'rituals.json');
+const NOTES_PATH = path.join(__dirname, 'notes.json');
+
+if (fs.existsSync(TASKS_PATH)) {
+    try {
+        const tasks = JSON.parse(fs.readFileSync(TASKS_PATH, 'utf8'));
+        const insert = db.prepare('INSERT OR IGNORE INTO tasks (id, title, status) VALUES (@id, @title, @status)');
+        const insertMany = db.transaction((txs) => {
+            for (const t of txs) insert.run(t);
+        });
+        insertMany(tasks);
+        fs.unlinkSync(TASKS_PATH);
+        console.log("✅ Migrated tasks.json to SQLite and deleted file.");
+    } catch (err) { console.error("Tasks migration failed:", err); }
+}
+
+if (fs.existsSync(RITUALS_PATH)) {
+    try {
+        const rituals = JSON.parse(fs.readFileSync(RITUALS_PATH, 'utf8'));
+        const insert = db.prepare('INSERT OR IGNORE INTO rituals (id, title, completed, lastResetDate) VALUES (@id, @title, @completed, @lastResetDate)');
+        const insertMany = db.transaction((rits) => {
+            for (const r of rits) insert.run({ ...r, completed: r.completed ? 1 : 0 });
+        });
+        insertMany(rituals);
+        fs.unlinkSync(RITUALS_PATH);
+        console.log("✅ Migrated rituals.json to SQLite and deleted file.");
+    } catch (err) { console.error("Rituals migration failed:", err); }
+} else {
+    // Seed default rituals if table is empty
+    const count = db.prepare("SELECT COUNT(*) as count FROM rituals").get().count;
+    if (count === 0) {
+        const today = new Date().toDateString();
+        const stmt = db.prepare("INSERT INTO rituals (id, title, completed, lastResetDate) VALUES (?, ?, ?, ?)");
+        db.transaction(() => {
+            stmt.run("r1", "Drink a large glass of water", 0, today);
+            stmt.run("r2", "10 minute stretching session", 0, today);
+            stmt.run("r3", "Review Zenith Priority goals", 0, today);
+        })();
+    }
+}
+
+if (fs.existsSync(NOTES_PATH)) {
+    try {
+        const notes = JSON.parse(fs.readFileSync(NOTES_PATH, 'utf8'));
+        db.prepare('INSERT OR REPLACE INTO notes (id, content) VALUES (1, ?)').run(notes.content || "");
+        fs.unlinkSync(NOTES_PATH);
+        console.log("✅ Migrated notes.json to SQLite and deleted file.");
+    } catch (err) { console.error("Notes migration failed:", err); }
+}
 
 // Helper wrapper to get OAuth2 Client
 async function getOAuth2Client() {
@@ -83,23 +163,71 @@ app.post('/api/auth/token', async (req, res) => {
     }
 });
 
-// Tasks Endpoints (Local JSON)
+// --- Tasks Endpoints (SQLite) ---
 app.get('/api/tasks', (req, res) => {
-    if (!fs.existsSync(TASKS_PATH)) {
-        fs.writeFileSync(TASKS_PATH, JSON.stringify([]));
-    }
-    const tasks = JSON.parse(fs.readFileSync(TASKS_PATH));
+    const tasks = db.prepare('SELECT * FROM tasks').all();
     res.json(tasks);
 });
 
 app.post('/api/tasks', (req, res) => {
     const tasks = req.body;
-    fs.writeFileSync(TASKS_PATH, JSON.stringify(tasks, null, 2));
+    const insert = db.prepare('INSERT INTO tasks (id, title, status) VALUES (@id, @title, @status)');
+
+    // Batch replace strategy to match frontend Kanban arrays
+    const transaction = db.transaction((txs) => {
+        db.prepare('DELETE FROM tasks').run();
+        for (const t of txs) insert.run(t);
+    });
+
+    transaction(tasks);
     res.json({ success: true });
 });
 
-// Calendar Endpoint
+// --- Quick Notes Endpoints (SQLite) ---
+app.get('/api/notes', (req, res) => {
+    let note = db.prepare('SELECT content FROM notes WHERE id = 1').get();
+    if (!note) {
+        db.prepare("INSERT INTO notes (id, content) VALUES (1, '')").run();
+        note = { content: "" };
+    }
+    res.json(note);
+});
+
+app.post('/api/notes', (req, res) => {
+    const { content } = req.body;
+    db.prepare('INSERT OR REPLACE INTO notes (id, content) VALUES (1, ?)').run(content || "");
+    res.json({ success: true });
+});
+
+// --- Daily Rituals Endpoints (SQLite) ---
+app.get('/api/rituals', (req, res) => {
+    const today = new Date().toDateString();
+    let rituals = db.prepare('SELECT * FROM rituals').all();
+
+    if (rituals.length > 0 && rituals[0].lastResetDate !== today) {
+        db.prepare('UPDATE rituals SET completed = 0, lastResetDate = ?').run(today);
+        rituals = db.prepare('SELECT * FROM rituals').all(); // Fetch updated
+    }
+
+    res.json(rituals.map(r => ({ ...r, completed: r.completed === 1 })));
+});
+
+app.put('/api/rituals/:id', (req, res) => {
+    const { id } = req.params;
+    const { completed } = req.body;
+    db.prepare('UPDATE rituals SET completed = ? WHERE id = ?').run(completed ? 1 : 0, id);
+    res.json({ success: true });
+});
+
+// --- Calendar Endpoint (Cached) ---
 app.get('/api/calendar', async (req, res) => {
+    const cacheKey = 'calendarData';
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
     try {
         const auth = await getOAuth2Client();
         const calendar = google.calendar({ version: 'v3', auth });
@@ -125,14 +253,23 @@ app.get('/api/calendar', async (req, res) => {
             end: event.end.dateTime || event.end.date
         }));
 
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, events);
         res.json(events);
     } catch (err) {
         res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
     }
 });
 
-// Inbox Endpoint
+// --- Inbox Endpoint (Cached) ---
 app.get('/api/inbox', async (req, res) => {
+    const cacheKey = 'inboxData';
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
     try {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
@@ -144,7 +281,10 @@ app.get('/api/inbox', async (req, res) => {
             maxResults: 5
         });
 
-        if (!response.data.messages) return res.json([]);
+        if (!response.data.messages) {
+            apiCache.set(cacheKey, []);
+            return res.json([]);
+        }
 
         const messages = await Promise.all(response.data.messages.map(async (msg) => {
             const detail = await gmail.users.messages.get({
@@ -159,20 +299,29 @@ app.get('/api/inbox', async (req, res) => {
             return { id: msg.id, snippet: detail.data.snippet, subject, from };
         }));
 
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, messages);
         res.json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
     }
 });
 
-// Trips Endpoint (Parsing Inbox & Calendar)
+// --- Trips Endpoint (Parsing Inbox & Calendar) ---
+// Not heavily cached since it processes multiple calendars, maybe 5 min cache too.
 app.get('/api/trips', async (req, res) => {
+    const cacheKey = 'tripsData';
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
     try {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
         const calendar = google.calendar({ version: 'v3', auth });
 
-        // Helper to parse subject into clean metadata
         const parseTrip = (subject, dateStrFallback) => {
             let tripType = 'flight';
             let cleanTitle = subject;
@@ -184,14 +333,12 @@ app.get('/api/trips', async (req, res) => {
                 tripType = 'train';
             }
 
-            // Clean title words
             cleanTitle = cleanTitle.replace("TripIt Pro alert: ", "")
                 .replace("Gate update for ", "Gate Update: ")
                 .replace("Departure summary for your flight to ", "Flight to ")
                 .replace(": Travel Advisory - A terminal change for your upcoming flight", " (Terminal Change)")
                 .replace("Reservation confirmed", "Hotel/Stay confirmed");
 
-            // Look for inline dates like "on 11/2/2026" or "for Saturday, Feb 14"
             let extractedDate = dateStrFallback;
             const dateMatch = cleanTitle.match(/on (\d{1,2}\/\d{1,2}\/\d{4})/);
             if (dateMatch) {
@@ -206,12 +353,11 @@ app.get('/api/trips', async (req, res) => {
             return { tripType, cleanTitle, extractedDate };
         };
 
-        // Fetch Google Calendar Travel Events across ALL calendars
         const calListResponse = await calendar.calendarList.list();
         const calPromises = calListResponse.data.items.map(cal => {
             return calendar.events.list({
                 calendarId: cal.id,
-                timeMin: new Date().toISOString(), // Only pull future events
+                timeMin: new Date().toISOString(),
                 timeMax: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString(),
                 maxResults: 50,
                 singleEvents: true,
@@ -240,15 +386,15 @@ app.get('/api/trips', async (req, res) => {
             }).catch(err => { console.error(`Calendar ${cal.summary} Trips Error:`, err); return []; });
         });
 
-        // Await all calendar promises and flatten
         const allCalTripsArrays = await Promise.all(calPromises);
         let allTrips = allCalTripsArrays.flat();
 
-        // Sort chronologically (earliest first)
-        // Since we want upcoming trips, we'll sort by timestamp ascending
         allTrips.sort((a, b) => a.timestamp - b.timestamp);
+        const results = allTrips.slice(0, 10);
 
-        res.json(allTrips.slice(0, 10)); // return top 10
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, results);
+        res.json(results);
 
     } catch (err) {
         res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
@@ -287,7 +433,6 @@ Respond with ONLY a valid JSON object in the exact following format, with no mar
             contents: prompt,
         });
 
-        // Strip markdown if it returned any
         let responseText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
 
         const suggestion = JSON.parse(responseText);

@@ -1,16 +1,12 @@
-# Node modules
 node_modules/
-
-# Secrets and keys
+.DS_Store
+.env
 credentials.json
 token.json
-.env
-.env.local
-
-# Logs
-logs
-*.log
-npm-debug.log*
-
-# OS Files
-.DS_Store
+tasks.json
+rituals.json
+notes.json
+database.db
+database.db-journal
+database.db-wal
+database.db-shm
