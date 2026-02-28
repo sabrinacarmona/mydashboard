@@ -60,7 +60,8 @@ db.exec(`
     id TEXT PRIMARY KEY,
     title TEXT,
     status TEXT,
-    context_mode TEXT DEFAULT 'both'
+    context_mode TEXT DEFAULT 'both',
+    source_reference TEXT
   );
   CREATE TABLE IF NOT EXISTS rituals (
     id TEXT PRIMARY KEY,
@@ -89,6 +90,7 @@ db.exec(`
 
 // Safe migrations for older DB schemas on persistent volumes
 try { db.exec("ALTER TABLE tasks ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+try { db.exec("ALTER TABLE tasks ADD COLUMN source_reference TEXT"); } catch (e) { }
 try { db.exec("ALTER TABLE notes ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
 try { db.exec("ALTER TABLE grouped_trips ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
 
@@ -612,6 +614,109 @@ ${JSON.stringify(combinedData)}
     }
 };
 
+// --- Gemini Auto-Pilot (Predictive Task Capture) ---
+cron.schedule('*/15 * * * *', async () => {
+    console.log('[Cron] Running Gemini Auto-Pilot predictive task capture...');
+    try {
+        const auth = await getOAuth2Client();
+        if (!auth || !ai) {
+            console.log('[Auto-Pilot] Skipping. Missing Auth or Gemini AI.');
+            return;
+        }
+
+        const gmail = google.gmail({ version: 'v1', auth });
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        // 1. Fetch unread emails
+        let unreadEmails = [];
+        try {
+            const response = await gmail.users.messages.list({
+                userId: 'me',
+                q: 'is:unread in:inbox',
+                maxResults: 15
+            });
+            if (response.data.messages) {
+                const msgs = await Promise.all(response.data.messages.map(async (m) => {
+                    const detail = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: m.id,
+                        format: 'metadata',
+                        metadataHeaders: ['Subject', 'From']
+                    });
+                    const headers = detail.data.payload.headers;
+                    const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+                    const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+                    return { id: m.id, type: 'email', subject, from, snippet: detail.data.snippet };
+                }));
+                unreadEmails = msgs;
+            }
+        } catch (e) { console.error('[Auto-Pilot] Gmail fetch failed', e.message); }
+
+        // 2. Fetch upcoming events (Next 48h)
+        let upcomingEvents = [];
+        try {
+            const timeMin = new Date();
+            const timeMax = new Date(timeMin.getTime() + 48 * 60 * 60 * 1000);
+
+            const response = await calendar.events.list({
+                calendarId: 'primary',
+                timeMin: timeMin.toISOString(),
+                timeMax: timeMax.toISOString(),
+                maxResults: 15,
+                singleEvents: true,
+                orderBy: 'startTime',
+            });
+            if (response.data.items) {
+                upcomingEvents = response.data.items.map(e => ({
+                    id: e.id,
+                    type: 'calendar',
+                    summary: e.summary,
+                    start: e.start.dateTime || e.start.date
+                }));
+            }
+        } catch (e) { console.error('[Auto-Pilot] Calendar fetch failed', e.message); }
+
+        const combinedData = [...unreadEmails, ...upcomingEvents];
+        if (combinedData.length === 0) return;
+
+        // 3. Send to Gemini
+        const prompt = `
+You are an elite Executive Assistant. Review these unread emails and upcoming events. Ignore newsletters, spam, and FYI emails. Find ONLY explicit action items or tasks the user needs to complete. Return a strict JSON array of objects with the schema: [{ "title": "Short task name", "sourceId": "The email ID or event ID" }].
+
+Raw Data:
+${JSON.stringify(combinedData)}
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        const responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const extractedTasks = JSON.parse(responseText);
+
+        let addedCount = 0;
+        // 4. Inject into Database
+        for (const task of extractedTasks) {
+            if (!task.sourceId || !task.title) continue;
+
+            // Deduplication
+            const existing = db.prepare('SELECT 1 FROM tasks WHERE source_reference = ?').get(task.sourceId);
+            if (!existing) {
+                const newId = 'gen_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                const newTitle = "✨ " + task.title;
+                db.prepare('INSERT INTO tasks (id, title, status, context_mode, source_reference) VALUES (?, ?, ?, ?, ?)')
+                    .run(newId, newTitle, 'todo', 'both', task.sourceId);
+                addedCount++;
+            }
+        }
+        console.log(`[Auto-Pilot] Extracted and added ${addedCount} new tasks.`);
+
+    } catch (err) {
+        console.error('[Auto-Pilot] Error during execution:', err);
+    }
+});
+
 // Helper for rate-limiting
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -672,7 +777,7 @@ app.post('/api/ai/schedule', async (req, res) => {
         const prompt = `
 You are an intelligent executive assistant like Sunsama.
 Your goal is to look at a user's task and their upcoming calendar schedule, and determine the BEST 30-minute to 1-hour time slot for them to complete this task.
-The user works roughly 9 AM to 5 PM. Do not schedule tasks during their existing calendar events. Do not schedule tasks in the past.
+The user works roughly 9 AM to 5 PM.Do not schedule tasks during their existing calendar events.Do not schedule tasks in the past.
 Assume today is ${new Date().toLocaleDateString()} and the time is ${new Date().toLocaleTimeString()}.
 
 Task to schedule: "${taskTitle}"
@@ -681,10 +786,10 @@ User's upcoming calendar events:
 ${JSON.stringify(calendarEvents, null, 2)}
 
 Respond with ONLY a valid JSON object in the exact following format, with no markdown formatting or extra text:
-{
-  "recommendedTime": "YYYY-MM-DDTHH:MM:SSZ",
-  "reasoning": "A short, 1-sentence explanation of why you chose this time."
-}
+        {
+            "recommendedTime": "YYYY-MM-DDTHH:MM:SSZ",
+                "reasoning": "A short, 1-sentence explanation of why you chose this time."
+        }
         `;
 
         const response = await ai.models.generateContent({
@@ -692,7 +797,7 @@ Respond with ONLY a valid JSON object in the exact following format, with no mar
             contents: prompt,
         });
 
-        let responseText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        let responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
         const suggestion = JSON.parse(responseText);
         res.json(suggestion);
