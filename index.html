@@ -286,11 +286,19 @@
 
     <!-- Zen Focus Overlay -->
     <div id="zen-layout"
-        class="fixed inset-0 z-40 hidden flex-col items-center justify-center pointer-events-none opacity-0 transition-opacity duration-700">
-        <div class="pointer-events-auto text-center max-w-3xl px-6 w-full">
-            <h2 class="text-sm uppercase tracking-[0.3em] text-white/40 mb-8">One Thing at a Time</h2>
+        class="fixed inset-0 z-40 hidden flex-col items-center justify-center pointer-events-none opacity-0 transition-opacity duration-700 bg-black/20 backdrop-blur-sm">
+
+        <div
+            class="pointer-events-auto text-center max-w-4xl px-8 py-16 w-full glass-card rounded-3xl mx-auto shadow-2xl flex flex-col items-center justify-center relative backdrop-blur-2xl bg-black/40 border-white/10 m-6">
+            <h2 class="text-sm uppercase tracking-[0.4em] text-white/60 mb-8 flex items-center justify-center">
+                <svg class="w-4 h-4 mr-3 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Focus Flow
+            </h2>
             <div id="zen-task-display"
-                class="text-4xl md:text-5xl lg:text-6xl font-semibold text-white/90 leading-tight mb-16">
+                class="text-4xl md:text-5xl lg:text-6xl font-semibold text-white/90 leading-tight mb-12 max-w-2xl mx-auto">
                 <!-- Task inserted here -->
             </div>
 
@@ -374,14 +382,24 @@
         // --- Context Theme Handling ---
         const contextProfBtn = document.getElementById('context-professional');
         const contextPersBtn = document.getElementById('context-personal');
-        let currentContext = 'professional'; // default state
+        // --- Agent Alpha (Temporal Logic) ---
+        function getAutoContext() {
+            const now = new Date();
+            const day = now.getDay();
+            const hour = now.getHours();
+            if (day === 0 || day === 6 || hour >= 18 || hour < 8) {
+                return 'personal';
+            }
+            return 'professional';
+        }
+        let currentContext = getAutoContext(); // dynamic default state
 
-        function updateContextTheme(context) {
-            if (currentContext === context) return;
+        function updateContextTheme(context, isInitialLoad = false) {
+            if (currentContext === context && !isInitialLoad) return;
             currentContext = context;
 
             // Smooth data transition
-            if (mainLayout) {
+            if (mainLayout && !isInitialLoad) {
                 mainLayout.style.opacity = '0.3';
                 mainLayout.style.transform = 'scale(0.99)';
                 setTimeout(() => {
@@ -605,16 +623,23 @@
 
         function renderInbox(messages, container) {
             if (!messages || messages.length === 0) {
-                container.innerHTML = '<div class="text-sm text-white/50 p-4">Inbox zero!</div>';
+                container.innerHTML = `
+                    <div class="h-32 flex flex-col items-center justify-center text-white/40 space-y-3 animate-fade-in">
+                        <svg class="w-8 h-8 text-green-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-[10px] tracking-[0.2em] font-medium uppercase">All clear.</span>
+                    </div>
+                `;
                 return;
             }
             container.innerHTML = messages.map(msg => {
                 const title = (msg.subject || 'Email').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 return `
-                <div class="p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
+                <div class="inbox-item p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
                      draggable="true" 
-                     ondragstart="this.style.opacity='0.5'; event.dataTransfer.setData('text/plain', 'NEW_TASK:' + '${title}');"
-                     ondragend="this.style.opacity='1';">
+                     ondragstart="this.classList.add('is-dragging'); event.dataTransfer.setData('text/plain', 'NEW_TASK:' + '${title}');"
+                     ondragend="this.classList.remove('is-dragging');">
                     <p class="text-xs font-semibold text-white/70 truncate mb-1">${msg.from}</p>
                     <p class="text-sm font-medium text-white/90 truncate">${msg.subject}</p>
                 </div>
@@ -701,10 +726,10 @@
 
                 // Drag Events
                 el.addEventListener('dragstart', (e) => {
-                    el.classList.add('dragging');
+                    el.classList.add('dragging', 'is-dragging');
                     e.dataTransfer.setData('text/plain', task.id);
                 });
-                el.addEventListener('dragend', () => el.classList.remove('dragging'));
+                el.addEventListener('dragend', () => el.classList.remove('dragging', 'is-dragging'));
 
                 // Checkbox event (Mark Done)
                 const cb = el.querySelector('.task-checkbox');
@@ -834,8 +859,16 @@
                 const container = document.getElementById('rituals-container');
                 container.innerHTML = '';
 
-                if (rituals.length === 0) {
-                    container.innerHTML = '<div class="text-xs text-white/40 italic">No rituals configured.</div>';
+                const allCompleted = rituals.length > 0 && rituals.every(r => r.completed);
+                if (rituals.length === 0 || allCompleted) {
+                    container.innerHTML = `
+                        <div class="h-24 flex flex-col items-center justify-center text-white/40 space-y-2 animate-fade-in">
+                            <svg class="w-6 h-6 text-green-400/50 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-[10px] tracking-[0.2em] font-medium uppercase">All clear.</span>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -1134,6 +1167,7 @@
         }
 
         // Start App on Initial Load
+        updateContextTheme(currentContext, true); // Initialize context buttons visually
         loadDashboardData();
         updateHUDClock();
         fetchHUDWeather();

@@ -95,10 +95,6 @@ body.zen-active .zen-focus {
     transition: opacity 0.5s ease;
 }
 
-body.zen-active .ambient-glow-subtle {
-    opacity: 0;
-}
-
 /* Breathing Animation for Flow State */
 .breathing-circle {
     position: absolute;
@@ -176,4 +172,17 @@ body.zen-active .ambient-glow-subtle {
 
 .task-item.dragging {
     opacity: 0.5;
+}
+
+/* Agent Gamma Haptic & Physics Hooks */
+.is-dragging {
+    transform: scale(1.05) rotate(1deg) !important;
+    z-index: 50;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
+}
+
+.task-item,
+.inbox-item {
+    transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease !important;
 }
