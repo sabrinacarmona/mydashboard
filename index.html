@@ -1519,17 +1519,22 @@
                         if (line.startsWith('data: ')) {
                             const dataPayload = line.replace('data: ', '').trim();
                             if (dataPayload === '[DONE]') break;
+                            let parsed;
                             try {
-                                const parsed = JSON.parse(dataPayload);
-                                if (parsed.error) throw new Error(parsed.error);
-                                if (parsed.text) {
-                                    streamingText += parsed.text;
-                                    outputText.textContent = streamingText;
-                                    // Auto scroll
-                                    outputText.scrollTop = outputText.scrollHeight;
-                                }
+                                parsed = JSON.parse(dataPayload);
                             } catch (e) {
-                                // Ignore parse errors for split chunks handled next read
+                                // Ignore parse errors for split chunks, will combine on next read
+                                continue;
+                            }
+
+                            if (parsed.error) {
+                                throw new Error(parsed.error);
+                            }
+                            if (parsed.text) {
+                                streamingText += parsed.text;
+                                outputText.textContent = streamingText;
+                                // Auto scroll
+                                outputText.scrollTop = outputText.scrollHeight;
                             }
                         }
                     }
