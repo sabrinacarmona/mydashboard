@@ -5,13 +5,6 @@ const path = require('path');
 const { google } = require('googleapis');
 require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
-const Anthropic = require('@anthropic-ai/sdk');
-
-if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("FATAL: ANTHROPIC_API_KEY not found in environment. MailCraft requires this key to boot.");
-    process.exit(1);
-}
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // --- Caching and Database Dependencies ---
 const Database = require('better-sqlite3');
@@ -806,40 +799,34 @@ app.post('/api/mailcraft', async (req, res) => {
     }
 
     try {
-        const stream = await anthropic.messages.stream({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 1024,
-            system: buildSystemPrompt(tone),
-            messages: [
-                {
-                    role: "user",
-                    content: buildUserMessage(draftText, replyContext),
-                },
-            ],
-        });
+        if (!ai) {
+            throw new Error("Gemini AI is not initialized. Please configure GEMINI_API_KEY.");
+        }
 
-        stream.on('text', (text) => {
-            res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        });
-
-        stream.on('inputJson', (partialJson) => {
-            // Not applicable since no tool calls, but just in case
-        });
-
-        stream.on('end', () => {
-            res.write('data: [DONE]\n\n');
-            res.end();
-        });
-
-        stream.on('error', (err) => {
-            console.error('Anthropic Streaming Error:', err);
-            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-            res.end();
+        const responseStream = await ai.models.generateContentStream({
+            model: 'gemini-2.5-flash',
+            contents: buildUserMessage(draftText, replyContext),
+            config: {
+                systemInstruction: buildSystemPrompt(tone),
+                maxOutputTokens: 1024
+            }
         });
 
         req.on('close', () => {
-            stream.controller.abort();
+            // connection broke, we can't cleanly abort generator but we can listen
         });
+
+        for await (const chunk of responseStream) {
+            if (req.destroyed) break;
+            if (chunk.text) {
+                res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+            }
+        }
+
+        if (!req.destroyed) {
+            res.write('data: [DONE]\n\n');
+            res.end();
+        }
     } catch (err) {
         console.error("MailCraft error:", err);
         res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
