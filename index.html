@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal-OS v2.0</title>
+    <!-- Web App Manifest for Mobile Installation -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -30,6 +34,15 @@
         .kanban-dropzone.drag-over {
             background-color: rgba(255, 255, 255, 0.05);
             border: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        /* Mobile specific overrides */
+        @media (max-width: 1024px) {
+            .mobile-fullscreen-scroll {
+                /* Override the fixed 80vh to allow full content scrolling on mobile */
+                height: auto !important;
+                min-height: 100vh;
+            }
         }
     </style>
 </head>
@@ -61,7 +74,12 @@
                     </svg>
                 </span>
             </div>
-            <div id="hud-location" class="text-[10px] text-white/30 tracking-widest uppercase mt-0.5">London, UK</div>
+            <div class="flex items-center space-x-2 mt-0.5">
+                <div id="hud-location" class="text-[10px] text-white/30 tracking-widest uppercase">London, UK</div>
+                <span class="text-[10px] text-white/20">•</span>
+                <span id="hud-last-sync" class="text-[10px] text-white/30 tracking-widest uppercase">SYNCED:
+                    --:--</span>
+            </div>
         </div>
 
         <div class="flex items-center space-x-6">
@@ -113,25 +131,32 @@
             <div class="rounded-2xl p-5 glass-card flex flex-col min-h-[220px]">
                 <h2 class="text-md font-semibold flex items-center text-white/90 mb-3 shrink-0">
                     <svg class="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                        </path>
                     </svg>
                     Quick Notes
                 </h2>
-                <textarea id="quick-notes-area" class="w-full flex-grow bg-transparent text-sm text-white/80 placeholder-white/30 resize-none focus:outline-none" placeholder="Jot down thoughts here... (auto-saves)"></textarea>
+                <textarea id="quick-notes-area"
+                    class="w-full flex-grow bg-transparent text-sm text-white/80 placeholder-white/30 resize-none focus:outline-none"
+                    placeholder="Jot down thoughts here... (auto-saves)"></textarea>
                 <div class="text-right mt-1">
-                    <span id="notes-save-status" class="text-xs text-white/40 italic transition-opacity opacity-0">Saved</span>
+                    <span id="notes-save-status"
+                        class="text-xs text-white/40 italic transition-opacity opacity-0">Saved</span>
                 </div>
             </div>
         </div>
 
         <!-- Column 2: Tasks & Upcoming Trips Stacked -->
         <div class="lg:col-span-6 flex flex-col space-y-6 h-[80vh] hide-in-zen transition-all-slow">
-            
+
             <!-- Daily Rituals (Top of Column 2) -->
             <div class="rounded-2xl p-4 glass-card shrink-0">
                 <h2 class="text-sm font-semibold flex items-center text-white/90 mb-3">
                     <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
                     </svg>
                     Daily Rituals
                 </h2>
@@ -198,10 +223,29 @@
         </div>
 
 
-        <!-- Column 3: Events -->
+        <!-- Column 3: Events & Pomodoro -->
         <div
-            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-[80vh] overflow-hidden hide-in-zen transition-all-slow">
-            <div class="mb-6">
+            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-[80vh] overflow-hidden mobile-fullscreen-scroll hide-in-zen transition-all-slow">
+
+            <!-- Focus Heatmap -->
+            <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
+                <h2 class="text-sm font-semibold flex items-center justify-between text-white/90 mb-4">
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Focus Heatmap
+                    </span>
+                    <span id="pomodoro-stats" class="text-xs text-white/50 font-mono tracking-wider">0m TODAY</span>
+                </h2>
+                <div id="focus-heatmap-container"
+                    class="flex flex-row items-end justify-between space-x-1 h-14 w-full mt-2">
+                    <!-- Bars injected via JS -->
+                </div>
+            </div>
+
+            <div class="mb-6 shrink-0">
                 <h2 class="text-lg font-semibold flex items-center text-white/90 mb-1">
                     <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -240,8 +284,30 @@
                 class="text-4xl md:text-5xl lg:text-6xl font-semibold text-white/90 leading-tight mb-16">
                 <!-- Task inserted here -->
             </div>
+
+            <!-- Zen Pomodoro Timer -->
+            <div class="flex flex-col items-center justify-center mb-12">
+                <div id="pomodoro-display"
+                    class="text-6xl md:text-8xl font-light tracking-widest text-white mb-8 font-mono drop-shadow-lg">
+                    25:00</div>
+                <div class="flex space-x-4">
+                    <button id="pomodoro-toggle"
+                        class="px-8 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10">
+                        Start Focus
+                    </button>
+                    <button id="pomodoro-reset"
+                        class="px-6 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             <button id="zen-complete-btn"
-                class="glass px-8 py-3 rounded-full font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors border-white/10 hidden">
+                class="glass px-8 py-3 rounded-full font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors border-white/10 hidden mx-auto">
                 <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
@@ -378,9 +444,29 @@
 
         async function showAuthModal() {
             authModal.classList.remove('hidden');
-            const res = await fetch(`${API_BASE}/auth/url`);
-            const data = await res.json();
-            authLink.href = data.url;
+            try {
+                const res = await fetch(`${API_BASE}/auth/url`);
+                const data = await res.json();
+                if (res.ok && data.url) {
+                    authLink.href = data.url;
+                    authLink.textContent = "Authorize with Google";
+                    authLink.classList.remove('pointer-events-none', 'opacity-50');
+                } else {
+                    authLink.href = "#";
+                    authLink.textContent = "Missing credentials.json";
+                    authLink.classList.add('pointer-events-none', 'opacity-50');
+                    if (!document.getElementById('auth-error-msg')) {
+                        const err = document.createElement('p');
+                        err.id = 'auth-error-msg';
+                        err.className = 'text-xs text-red-400 mb-4 px-4';
+                        err.textContent = `Error: ${data.error || 'Failed to load Auth URL.'} Please place your Google Cloud credentials.json in the project root.`;
+                        authLink.parentNode.insertBefore(err, authLink);
+                    }
+                }
+            } catch (err) {
+                console.error('Auth URL Fetch Error:', err);
+                authLink.textContent = "Backend Offline";
+            }
         }
 
         submitAuthCodeBtn.addEventListener('click', async () => {
@@ -671,10 +757,10 @@
                 const res = await fetch(`${API_BASE}/rituals`);
                 if (!res.ok) throw new Error('Failed to fetch rituals');
                 const rituals = await res.json();
-                
+
                 const container = document.getElementById('rituals-container');
                 container.innerHTML = '';
-                
+
                 if (rituals.length === 0) {
                     container.innerHTML = '<div class="text-xs text-white/40 italic">No rituals configured.</div>';
                     return;
@@ -744,11 +830,158 @@
             });
         }
 
+        // --- Pomodoro Timer Logic ---
+        let pomodoroTimer = null;
+        let pomodoroTimeLeft = 25 * 60; // 25 minutes in seconds
+        let isPomodoroRunning = false;
+
+        const pomodoroDisplay = document.getElementById('pomodoro-display');
+        const pomodoroToggle = document.getElementById('pomodoro-toggle');
+        const pomodoroReset = document.getElementById('pomodoro-reset');
+        const pomodoroStats = document.getElementById('pomodoro-stats');
+
+        async function fetchPomodoroStats() {
+            try {
+                const res = await fetch(`${API_BASE}/pomodoros/stats`);
+                const data = await res.json();
+
+                // Update Today Text
+                const todayHours = Math.floor((data.today || 0) / 60);
+                const todayMins = (data.today || 0) % 60;
+                if (todayHours > 0) {
+                    pomodoroStats.textContent = `${todayHours}h ${todayMins}m TODAY`;
+                } else {
+                    pomodoroStats.textContent = `${todayMins}m TODAY`;
+                }
+
+                // Render Heatmap Bars
+                const heatmapContainer = document.getElementById('focus-heatmap-container');
+                if (heatmapContainer && data.heatmap) {
+                    heatmapContainer.innerHTML = '';
+                    const MAX_EXPECTED_MINS = 240; // 4 hours cap for 100% bar height
+
+                    data.heatmap.forEach((dayData, index) => {
+                        const dayName = new Date(dayData.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
+                        const intensity = Math.min((dayData.minutes / MAX_EXPECTED_MINS) * 100, 100);
+
+                        // Height constraint & baseline visibility
+                        const barHeightClass = intensity > 0 ? `h-[${intensity}%]` : 'h-1';
+                        // A more dynamic way since arbitrary tailwind heights like h-[50%] might not be generated in JIT, 
+                        // we apply inline styles for precise height
+
+                        const el = document.createElement('div');
+                        el.className = "flex flex-col items-center justify-end w-full h-full group relative cursor-pointer";
+
+                        // Tooltip
+                        const hrs = Math.floor(dayData.minutes / 60);
+                        const mins = dayData.minutes % 60;
+                        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+                        el.innerHTML = `
+                            <div class="absolute -top-8 bg-charcoal border border-white/10 text-white/90 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                                ${new Date(dayData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${timeStr}
+                            </div>
+                            <div class="w-full bg-soft-amber transition-all duration-500 rounded-t-sm ${dayData.minutes > 0 ? 'opacity-80 group-hover:opacity-100' : 'opacity-20'}" 
+                                 style="height: ${Math.max(intensity, 5)}%"></div>
+                            <span class="text-[9px] text-white/30 mt-1 uppercase font-medium">${dayName}</span>
+                        `;
+                        heatmapContainer.appendChild(el);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch pomodoro stats", err);
+            }
+        }
+
+        function updatePomodoroDisplay() {
+            const minutes = Math.floor(pomodoroTimeLeft / 60);
+            const seconds = pomodoroTimeLeft % 60;
+            pomodoroDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Update document title for background tracking
+            if (isPomodoroRunning) {
+                document.title = `[${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}] Focus Mode`;
+            } else {
+                document.title = "Personal OS v2.0";
+            }
+        }
+
+        async function pomodoroComplete() {
+            isPomodoroRunning = false;
+            clearInterval(pomodoroTimer);
+            pomodoroToggle.textContent = 'Start';
+            pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
+            pomodoroToggle.classList.add('glass', 'text-white/90');
+            pomodoroTimeLeft = 25 * 60;
+            updatePomodoroDisplay();
+
+            // Auto log 25 minutes
+            try {
+                await fetch(`${API_BASE}/pomodoros`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duration_minutes: 25 })
+                });
+                fetchPomodoroStats();
+
+                // Audio notification
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play();
+
+                // Delay alert slightly so the audio can play
+                setTimeout(() => {
+                    alert("Pomodoro Complete! Amazing focus. Take a 5 minute break.");
+                }, 500);
+            } catch (err) {
+                console.error("Failed to log pomodoro", err);
+            }
+        }
+
+        function togglePomodoro() {
+            if (isPomodoroRunning) {
+                // Pause
+                clearInterval(pomodoroTimer);
+                isPomodoroRunning = false;
+                pomodoroToggle.textContent = 'Resume';
+                pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
+                pomodoroToggle.classList.add('glass', 'text-white/90');
+                updatePomodoroDisplay();
+            } else {
+                // Start
+                isPomodoroRunning = true;
+                pomodoroToggle.textContent = 'Pause';
+                pomodoroToggle.classList.remove('glass', 'text-white/90');
+                pomodoroToggle.classList.add('bg-red-500/20', 'text-red-300');
+                updatePomodoroDisplay();
+
+                pomodoroTimer = setInterval(() => {
+                    if (pomodoroTimeLeft > 0) {
+                        pomodoroTimeLeft--;
+                        updatePomodoroDisplay();
+                    } else {
+                        pomodoroComplete();
+                    }
+                }, 1000);
+            }
+        }
+
+        pomodoroToggle.addEventListener('click', togglePomodoro);
+        pomodoroReset.addEventListener('click', () => {
+            clearInterval(pomodoroTimer);
+            isPomodoroRunning = false;
+            pomodoroTimeLeft = 25 * 60;
+            updatePomodoroDisplay();
+            pomodoroToggle.textContent = 'Start';
+            pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
+            pomodoroToggle.classList.add('glass', 'text-white/90');
+        });
+
         // --- Initialization & Background Sync ---
         function loadDashboardData() {
             loadTasks();
             loadRituals();
             loadNotes();
+            fetchPomodoroStats();
             fetchGoogleData();
         }
 
@@ -770,6 +1003,11 @@
                 authStatusEl.classList.add('bg-green-500/20');
                 setTimeout(() => authStatusEl.classList.remove('bg-green-500/20'), 1000);
             }
+
+            // Update Last Synced timestamp
+            const now = new Date();
+            const syncTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('hud-last-sync').textContent = `SYNCED: ${syncTime}`;
         }
 
         // --- Context HUD (Time & Weather) ---

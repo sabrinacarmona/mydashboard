@@ -26,11 +26,12 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.readonly'];
-const TOKEN_PATH = path.join(__dirname, 'token.json');
+const TOKEN_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/token.json' : path.join(__dirname, 'token.json');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 
 // --- Initialization: Database ---
-const db = new Database(path.join(__dirname, 'database.db'));
+const DB_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/database.db' : path.join(__dirname, 'database.db');
+const db = new Database(DB_PATH);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS tasks (
@@ -47,6 +48,12 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS notes (
     id INTEGER PRIMARY KEY DEFAULT 1,
     content TEXT
+  );
+  CREATE TABLE IF NOT EXISTS pomodoros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    duration_minutes INTEGER,
+    completed_at TEXT,
+    task_id_optional TEXT
   );
 `);
 
@@ -106,16 +113,32 @@ if (fs.existsSync(NOTES_PATH)) {
     } catch (err) { console.error("Notes migration failed:", err); }
 }
 
+// Helper to get Google API Config
+function getGoogleApiConfig() {
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+        return {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uris: [process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback']
+        };
+    }
+    if (fs.existsSync(CREDENTIALS_PATH)) {
+        const content = fs.readFileSync(CREDENTIALS_PATH);
+        const credentials = JSON.parse(content);
+        return credentials.installed || credentials.web;
+    }
+    throw new Error('credentials.json not found and environment variables not set.');
+}
+
 // Helper wrapper to get OAuth2 Client
 async function getOAuth2Client() {
-    if (!fs.existsSync(CREDENTIALS_PATH)) {
-        throw new Error('credentials.json not found. Please download it from Google Cloud Console.');
-    }
-    const content = fs.readFileSync(CREDENTIALS_PATH);
-    const credentials = JSON.parse(content);
-    const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
+    const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
+    if (process.env.GOOGLE_TOKEN_JSON) {
+        oAuth2Client.setCredentials(JSON.parse(process.env.GOOGLE_TOKEN_JSON));
+        return oAuth2Client;
+    }
     if (fs.existsSync(TOKEN_PATH)) {
         const token = fs.readFileSync(TOKEN_PATH);
         oAuth2Client.setCredentials(JSON.parse(token));
@@ -127,12 +150,7 @@ async function getOAuth2Client() {
 // Generate Auth URL
 app.get('/api/auth/url', (req, res) => {
     try {
-        if (!fs.existsSync(CREDENTIALS_PATH)) {
-            return res.status(400).json({ error: 'credentials.json not found' });
-        }
-        const content = fs.readFileSync(CREDENTIALS_PATH);
-        const credentials = JSON.parse(content);
-        const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
         const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
         const authUrl = oAuth2Client.generateAuthUrl({
@@ -149,9 +167,7 @@ app.get('/api/auth/url', (req, res) => {
 app.post('/api/auth/token', async (req, res) => {
     const { code } = req.body;
     try {
-        const content = fs.readFileSync(CREDENTIALS_PATH);
-        const credentials = JSON.parse(content);
-        const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
         const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
         const { tokens } = await oAuth2Client.getToken(code);
@@ -441,6 +457,65 @@ Respond with ONLY a valid JSON object in the exact following format, with no mar
     } catch (err) {
         console.error("AI Scheduling Error:", err);
         res.status(500).json({ error: 'Failed to generate AI schedule.' });
+    }
+});
+
+// --- Pomodoro Endpoints ---
+app.post('/api/pomodoros', express.json(), (req, res) => {
+    try {
+        const { duration_minutes, task_id_optional } = req.body;
+        const insertPomodoro = db.prepare('INSERT INTO pomodoros (duration_minutes, completed_at, task_id_optional) VALUES (?, ?, ?)');
+        const result = insertPomodoro.run(duration_minutes, new Date().toISOString(), task_id_optional || null);
+        res.status(201).json({ id: result.lastInsertRowid, message: 'Pomodoro logged successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to log Pomodoro' });
+    }
+});
+
+app.get('/api/pomodoros/stats', (req, res) => {
+    try {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 6);
+
+        const getStats = db.prepare(`
+            SELECT 
+                date(completed_at) as date,
+                SUM(duration_minutes) as minutes
+            FROM pomodoros
+            WHERE date(completed_at) >= date(?)
+            GROUP BY date(completed_at)
+            ORDER BY date(completed_at) ASC
+        `);
+
+        const rawStats = getStats.all(sevenDaysAgo.toISOString());
+
+        // Build 7-day array
+        const heatmap = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(sevenDaysAgo);
+            d.setDate(sevenDaysAgo.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+
+            const existing = rawStats.find(r => r.date.startsWith(dateStr));
+            heatmap.push({
+                date: dateStr,
+                minutes: existing ? existing.minutes : 0
+            });
+        }
+
+        const todayStr = today.toISOString().split('T')[0];
+        const todayMins = heatmap.find(h => h.date === todayStr)?.minutes || 0;
+
+        res.json({
+            today: todayMins,
+            heatmap: heatmap
+        });
+    } catch (err) {
+        console.error("Pomodoro Stats Error:", err);
+        res.status(500).json({ error: 'Failed to fetch Pomodoro stats' });
     }
 });
 
