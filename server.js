@@ -45,7 +45,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
     title TEXT,
-    status TEXT
+    status TEXT,
+    context_mode TEXT DEFAULT 'both'
   );
   CREATE TABLE IF NOT EXISTS rituals (
     id TEXT PRIMARY KEY,
@@ -54,8 +55,9 @@ db.exec(`
     lastResetDate TEXT
   );
   CREATE TABLE IF NOT EXISTS notes (
-    id INTEGER PRIMARY KEY DEFAULT 1,
-    content TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT,
+    context_mode TEXT DEFAULT 'both'
   );
   CREATE TABLE IF NOT EXISTS pomodoros (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -189,18 +191,36 @@ app.post('/api/auth/token', async (req, res) => {
 
 // --- Tasks Endpoints (SQLite) ---
 app.get('/api/tasks', (req, res) => {
-    const tasks = db.prepare('SELECT * FROM tasks').all();
+    const context = req.query.context || 'both';
+    let tasks;
+    if (context === 'both') {
+        tasks = db.prepare('SELECT * FROM tasks').all();
+    } else {
+        tasks = db.prepare('SELECT * FROM tasks WHERE context_mode IN (?, "both")').all(context);
+    }
     res.json(tasks);
 });
 
 app.post('/api/tasks', (req, res) => {
     const tasks = req.body;
-    const insert = db.prepare('INSERT INTO tasks (id, title, status) VALUES (@id, @title, @status)');
+    const context = req.query.context || 'both';
+    const insert = db.prepare('INSERT INTO tasks (id, title, status, context_mode) VALUES (@id, @title, @status, @context_mode)');
 
     // Batch replace strategy to match frontend Kanban arrays
     const transaction = db.transaction((txs) => {
-        db.prepare('DELETE FROM tasks').run();
-        for (const t of txs) insert.run(t);
+        if (context === 'both') {
+            db.prepare('DELETE FROM tasks').run();
+        } else {
+            db.prepare('DELETE FROM tasks WHERE context_mode = ?').run(context);
+        }
+        for (const t of txs) {
+            insert.run({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                context_mode: t.context_mode || context
+            });
+        }
     });
 
     transaction(tasks);
@@ -209,9 +229,10 @@ app.post('/api/tasks', (req, res) => {
 
 // --- Quick Notes Endpoints (SQLite) ---
 app.get('/api/notes', (req, res) => {
-    let note = db.prepare('SELECT content FROM notes WHERE id = 1').get();
+    const context = req.query.context || 'both';
+    let note = db.prepare('SELECT content FROM notes WHERE context_mode = ?').get(context);
     if (!note) {
-        db.prepare("INSERT INTO notes (id, content) VALUES (1, '')").run();
+        db.prepare("INSERT INTO notes (content, context_mode) VALUES ('', ?)").run(context);
         note = { content: "" };
     }
     res.json(note);
@@ -219,7 +240,14 @@ app.get('/api/notes', (req, res) => {
 
 app.post('/api/notes', (req, res) => {
     const { content } = req.body;
-    db.prepare('INSERT OR REPLACE INTO notes (id, content) VALUES (1, ?)').run(content || "");
+    const context = req.query.context || 'both';
+
+    let note = db.prepare('SELECT id FROM notes WHERE context_mode = ?').get(context);
+    if (note) {
+        db.prepare('UPDATE notes SET content = ? WHERE id = ?').run(content || "", note.id);
+    } else {
+        db.prepare('INSERT INTO notes (content, context_mode) VALUES (?, ?)').run(content || "", context);
+    }
     res.json({ success: true });
 });
 
@@ -245,7 +273,8 @@ app.put('/api/rituals/:id', (req, res) => {
 
 // --- Calendar Endpoint (Cached) ---
 app.get('/api/calendar', async (req, res) => {
-    const cacheKey = 'calendarData';
+    const context = req.query.context || 'both';
+    const cacheKey = `calendarData_${context}`;
     const cachedData = apiCache.get(cacheKey);
     if (cachedData) {
         res.setHeader('X-Cache', 'HIT');
@@ -261,16 +290,47 @@ app.get('/api/calendar', async (req, res) => {
         const timeMax = new Date();
         timeMax.setDate(timeMax.getDate() + 30);
 
-        const response = await calendar.events.list({
-            calendarId: 'primary',
-            timeMin: timeMin.toISOString(),
-            timeMax: timeMax.toISOString(),
-            maxResults: 15,
-            singleEvents: true,
-            orderBy: 'startTime',
+        let calendarIds = ['primary']; // Default fallback
+
+        if (context === 'professional') {
+            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : ['primary'];
+        } else if (context === 'personal') {
+            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+        } else {
+            // Context 'both' -> Combine both
+            const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = Array.from(new Set([...profCals, ...persCals]));
+            if (calendarIds.length === 0) calendarIds = ['primary'];
+        }
+
+        const eventsPromises = calendarIds.map(async (calendarId) => {
+            try {
+                const response = await calendar.events.list({
+                    calendarId: calendarId.trim(),
+                    timeMin: timeMin.toISOString(),
+                    timeMax: timeMax.toISOString(),
+                    maxResults: 15,
+                    singleEvents: true,
+                    orderBy: 'startTime',
+                });
+                return response.data.items;
+            } catch (e) {
+                console.error(`Failed to fetch from calendar ${calendarId}`, e.message);
+                return [];
+            }
         });
 
-        const events = response.data.items.map(event => ({
+        const allItems = (await Promise.all(eventsPromises)).flat();
+
+        // Sort the merged items by startTime and filter empty
+        allItems.sort((a, b) => {
+            const dateA = new Date(a.start.dateTime || a.start.date);
+            const dateB = new Date(b.start.dateTime || b.start.date);
+            return dateA - dateB;
+        });
+
+        const events = allItems.slice(0, 15).map(event => ({
             id: event.id,
             summary: event.summary,
             start: event.start.dateTime || event.start.date,

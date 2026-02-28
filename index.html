@@ -83,6 +83,14 @@
         </div>
 
         <div class="flex items-center space-x-6">
+            <!-- Context Toggle -->
+            <div class="glass flex items-center rounded-full p-1 hide-in-zen transition-opacity duration-500">
+                <button id="context-professional"
+                    class="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white/10 text-white/90">Professional</button>
+                <button id="context-personal"
+                    class="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-white/40 hover:text-white/70">Personal</button>
+            </div>
+
             <!-- Auth Status -->
             <div id="auth-status"
                 class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500">
@@ -106,10 +114,10 @@
 
     <!-- Main Sunsama 3-Column Layout -->
     <div id="main-layout"
-        class="w-full max-w-[1400px] grid grid-cols-1 lg:grid-cols-12 gap-6 h-[80vh] transition-all duration-700 opacity-100 scale-100">
+        class="w-full max-w-[1400px] grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[80vh] transition-all duration-700 opacity-100 scale-100">
 
         <!-- Column 1: Actionable Inbox -->
-        <div class="lg:col-span-3 flex flex-col space-y-6 h-full hide-in-zen transition-all-slow">
+        <div class="lg:col-span-3 flex flex-col space-y-6 h-auto lg:h-full hide-in-zen transition-all-slow">
             <div class="rounded-2xl p-5 glass-card flex-grow overflow-hidden flex flex-col">
                 <div class="mb-4">
                     <h2 class="text-md font-semibold flex items-center text-white/90 mb-1">
@@ -148,7 +156,7 @@
         </div>
 
         <!-- Column 2: Tasks & Upcoming Trips Stacked -->
-        <div class="lg:col-span-6 flex flex-col space-y-6 h-[80vh] hide-in-zen transition-all-slow">
+        <div class="lg:col-span-6 flex flex-col space-y-6 h-auto lg:h-[80vh] hide-in-zen transition-all-slow">
 
             <!-- Daily Rituals (Top of Column 2) -->
             <div class="rounded-2xl p-4 glass-card shrink-0">
@@ -225,7 +233,7 @@
 
         <!-- Column 3: Events & Pomodoro -->
         <div
-            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-[80vh] overflow-hidden mobile-fullscreen-scroll hide-in-zen transition-all-slow">
+            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
 
             <!-- Focus Heatmap -->
             <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
@@ -285,25 +293,31 @@
                 <!-- Task inserted here -->
             </div>
 
-            <!-- Zen Pomodoro Timer -->
-            <div class="flex flex-col items-center justify-center mb-12">
-                <div id="pomodoro-display"
-                    class="text-6xl md:text-8xl font-light tracking-widest text-white mb-8 font-mono drop-shadow-lg">
-                    25:00</div>
-                <div class="flex space-x-4">
-                    <button id="pomodoro-toggle"
-                        class="px-8 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10">
-                        Start Focus
-                    </button>
-                    <button id="pomodoro-reset"
-                        class="px-6 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                            </path>
-                        </svg>
-                    </button>
+            <!-- Flow State Timer -->
+            <div class="flex flex-col items-center justify-center mb-12 relative w-64 h-64 mx-auto">
+                <div class="breathing-circle"></div>
+                <!-- z-index to stay above the breathing circle -->
+                <div class="relative z-10 flex flex-col items-center justify-center h-full">
+                    <div id="flow-display"
+                        class="text-5xl md:text-7xl font-light tracking-widest text-white/90 mb-2 font-mono drop-shadow-lg">
+                        00:00</div>
+                    <div class="text-xs tracking-[0.2em] text-white/30 uppercase">Time in Flow</div>
                 </div>
+            </div>
+
+            <div class="flex space-x-4 justify-center mb-12">
+                <button id="flow-toggle"
+                    class="px-8 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10 relative z-10">
+                    Enter Flow
+                </button>
+                <button id="flow-reset"
+                    class="px-6 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10 relative z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </button>
             </div>
 
             <button id="zen-complete-btn"
@@ -354,6 +368,54 @@
         const authCodeInput = document.getElementById('auth-code-input');
         const submitAuthCodeBtn = document.getElementById('submit-auth-code');
         const zenToggle = document.getElementById('zen-toggle');
+
+        // --- Context Theme Handling ---
+        const contextProfBtn = document.getElementById('context-professional');
+        const contextPersBtn = document.getElementById('context-personal');
+        let currentContext = 'professional'; // default state
+
+        function updateContextTheme(context) {
+            if (currentContext === context) return;
+            currentContext = context;
+
+            // Smooth data transition
+            if (mainLayout) {
+                mainLayout.style.opacity = '0.3';
+                mainLayout.style.transform = 'scale(0.99)';
+                setTimeout(() => {
+                    loadDashboardData();
+                    setTimeout(() => {
+                        mainLayout.style.opacity = '1';
+                        mainLayout.style.transform = 'scale(1)';
+                    }, 100);
+                }, 400);
+            }
+
+            if (context === 'personal') {
+                document.body.classList.add('theme-personal');
+
+                // Active state styling for Personal
+                contextPersBtn.classList.add('bg-white/10', 'text-white/90');
+                contextPersBtn.classList.remove('text-white/40', 'hover:text-white/70');
+
+                // Inactive state styling for Professional
+                contextProfBtn.classList.remove('bg-white/10', 'text-white/90');
+                contextProfBtn.classList.add('text-white/40', 'hover:text-white/70');
+            } else {
+                document.body.classList.remove('theme-personal');
+
+                // Active state styling for Professional
+                contextProfBtn.classList.add('bg-white/10', 'text-white/90');
+                contextProfBtn.classList.remove('text-white/40', 'hover:text-white/70');
+
+                // Inactive state styling for Personal
+                contextPersBtn.classList.remove('bg-white/10', 'text-white/90');
+                contextPersBtn.classList.add('text-white/40', 'hover:text-white/70');
+            }
+        }
+
+        contextProfBtn.addEventListener('click', () => updateContextTheme('professional'));
+        contextPersBtn.addEventListener('click', () => updateContextTheme('personal'));
 
         // --- Zen Mode Handle ---
         let isZenMode = false;
@@ -422,7 +484,7 @@
         // --- Authentication Flow ---
         async function checkAuthAndFetch(endpoint, containerId, renderFn) {
             try {
-                const res = await fetch(`${API_BASE}/${endpoint}`);
+                const res = await fetch(`${API_BASE}/${endpoint}?context=${currentContext}`);
                 const data = await res.json();
 
                 if (data.requiresAuth) {
@@ -575,7 +637,7 @@
         // --- Kanban Logic ---
         async function loadTasks() {
             try {
-                const res = await fetch(`${API_BASE}/tasks`);
+                const res = await fetch(`${API_BASE}/tasks?context=${currentContext}`);
                 localTasks = await res.json();
                 renderTasks();
             } catch (err) {
@@ -584,7 +646,7 @@
         }
 
         function saveTasks() {
-            fetch(`${API_BASE}/tasks`, {
+            fetch(`${API_BASE}/tasks?context=${currentContext}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(localTasks)
@@ -796,7 +858,7 @@
 
         async function loadNotes() {
             try {
-                const res = await fetch(`${API_BASE}/notes`);
+                const res = await fetch(`${API_BASE}/notes?context=${currentContext}`);
                 const data = await res.json();
                 if (data && data.content !== undefined) {
                     document.getElementById('quick-notes-area').value = data.content;
@@ -818,7 +880,7 @@
                 notesTimeout = setTimeout(async () => {
                     try {
                         const content = notesArea.value;
-                        await fetch(`${API_BASE}/notes`, {
+                        await fetch(`${API_BASE}/notes?context=${currentContext}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ content })
@@ -830,15 +892,23 @@
             });
         }
 
-        // --- Pomodoro Timer Logic ---
-        let pomodoroTimer = null;
-        let pomodoroTimeLeft = 25 * 60; // 25 minutes in seconds
-        let isPomodoroRunning = false;
+        // --- Flow State Timer Logic ---
+        let flowTimer = null;
+        let flowTimeAccumulated = 0; // tracking accumulated time in ms when paused
+        let flowStartTime = null;
+        let isFlowActive = false;
 
-        const pomodoroDisplay = document.getElementById('pomodoro-display');
-        const pomodoroToggle = document.getElementById('pomodoro-toggle');
-        const pomodoroReset = document.getElementById('pomodoro-reset');
-        const pomodoroStats = document.getElementById('pomodoro-stats');
+        function getFlowTimeSeconds() {
+            if (isFlowActive) {
+                return Math.floor((flowTimeAccumulated + (Date.now() - flowStartTime)) / 1000);
+            }
+            return Math.floor(flowTimeAccumulated / 1000);
+        }
+
+        const flowDisplay = document.getElementById('flow-display');
+        const flowToggle = document.getElementById('flow-toggle');
+        const flowReset = document.getElementById('flow-reset');
+        const pomodoroStats = document.getElementById('pomodoro-stats'); // Keeping ID same for backend reuse
 
         async function fetchPomodoroStats() {
             try {
@@ -866,8 +936,6 @@
 
                         // Height constraint & baseline visibility
                         const barHeightClass = intensity > 0 ? `h-[${intensity}%]` : 'h-1';
-                        // A more dynamic way since arbitrary tailwind heights like h-[50%] might not be generated in JIT, 
-                        // we apply inline styles for precise height
 
                         const el = document.createElement('div');
                         el.className = "flex flex-col items-center justify-end w-full h-full group relative cursor-pointer";
@@ -889,92 +957,88 @@
                     });
                 }
             } catch (err) {
-                console.error("Failed to fetch pomodoro stats", err);
+                console.error("Failed to fetch focus stats", err);
             }
         }
 
-        function updatePomodoroDisplay() {
-            const minutes = Math.floor(pomodoroTimeLeft / 60);
-            const seconds = pomodoroTimeLeft % 60;
-            pomodoroDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        function updateFlowDisplay() {
+            const totalSeconds = getFlowTimeSeconds();
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            flowDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
             // Update document title for background tracking
-            if (isPomodoroRunning) {
-                document.title = `[${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}] Focus Mode`;
+            if (isFlowActive) {
+                document.title = `[${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}] Flow State`;
             } else {
                 document.title = "Personal OS v2.0";
             }
         }
 
-        async function pomodoroComplete() {
-            isPomodoroRunning = false;
-            clearInterval(pomodoroTimer);
-            pomodoroToggle.textContent = 'Start';
-            pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
-            pomodoroToggle.classList.add('glass', 'text-white/90');
-            pomodoroTimeLeft = 25 * 60;
-            updatePomodoroDisplay();
-
-            // Auto log 25 minutes
-            try {
-                await fetch(`${API_BASE}/pomodoros`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ duration_minutes: 25 })
-                });
-                fetchPomodoroStats();
-
-                // Audio notification
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.play();
-
-                // Delay alert slightly so the audio can play
-                setTimeout(() => {
-                    alert("Pomodoro Complete! Amazing focus. Take a 5 minute break.");
-                }, 500);
-            } catch (err) {
-                console.error("Failed to log pomodoro", err);
+        async function flowComplete() {
+            // Log session if significant time passed (e.g. >= 1 minute)
+            const totalSeconds = getFlowTimeSeconds();
+            if (totalSeconds >= 60) {
+                const minutesFocused = Math.floor(totalSeconds / 60);
+                try {
+                    await fetch(`${API_BASE}/pomodoros`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ duration_minutes: minutesFocused })
+                    });
+                    fetchPomodoroStats();
+                } catch (err) {
+                    console.error("Failed to log flow session", err);
+                }
             }
         }
 
-        function togglePomodoro() {
-            if (isPomodoroRunning) {
+        function toggleFlowState() {
+            if (isFlowActive) {
                 // Pause
-                clearInterval(pomodoroTimer);
-                isPomodoroRunning = false;
-                pomodoroToggle.textContent = 'Resume';
-                pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
-                pomodoroToggle.classList.add('glass', 'text-white/90');
-                updatePomodoroDisplay();
+                clearInterval(flowTimer);
+                flowTimeAccumulated += (Date.now() - flowStartTime);
+                isFlowActive = false;
+                flowComplete(); // Log time on pause
+                flowToggle.textContent = 'Resume Flow';
+                flowToggle.classList.remove('bg-white/20');
+                flowToggle.classList.add('glass');
+                document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
+                updateFlowDisplay();
             } else {
                 // Start
-                isPomodoroRunning = true;
-                pomodoroToggle.textContent = 'Pause';
-                pomodoroToggle.classList.remove('glass', 'text-white/90');
-                pomodoroToggle.classList.add('bg-red-500/20', 'text-red-300');
-                updatePomodoroDisplay();
+                isFlowActive = true;
+                flowStartTime = Date.now();
+                flowToggle.textContent = 'Pause Flow';
+                flowToggle.classList.remove('glass');
+                flowToggle.classList.add('bg-white/20');
+                document.querySelector('.breathing-circle').style.animationPlayState = 'running';
+                updateFlowDisplay();
 
-                pomodoroTimer = setInterval(() => {
-                    if (pomodoroTimeLeft > 0) {
-                        pomodoroTimeLeft--;
-                        updatePomodoroDisplay();
-                    } else {
-                        pomodoroComplete();
-                    }
+                flowTimer = setInterval(() => {
+                    updateFlowDisplay();
                 }, 1000);
             }
         }
 
-        pomodoroToggle.addEventListener('click', togglePomodoro);
-        pomodoroReset.addEventListener('click', () => {
-            clearInterval(pomodoroTimer);
-            isPomodoroRunning = false;
-            pomodoroTimeLeft = 25 * 60;
-            updatePomodoroDisplay();
-            pomodoroToggle.textContent = 'Start';
-            pomodoroToggle.classList.remove('bg-red-500/20', 'text-red-300');
-            pomodoroToggle.classList.add('glass', 'text-white/90');
+        flowToggle.addEventListener('click', toggleFlowState);
+        flowReset.addEventListener('click', () => {
+            clearInterval(flowTimer);
+            if (isFlowActive) {
+                flowComplete(); // log remaining time
+            }
+            isFlowActive = false;
+            flowTimeAccumulated = 0;
+            flowStartTime = null;
+            updateFlowDisplay();
+            flowToggle.textContent = 'Enter Flow';
+            flowToggle.classList.remove('bg-white/20');
+            flowToggle.classList.add('glass');
+            document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
         });
+
+        // Pause animation by default
+        document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
 
         // --- Initialization & Background Sync ---
         function loadDashboardData() {
@@ -1057,7 +1121,15 @@
         setInterval(fetchHUDWeather, 15 * 60 * 1000); // Fetch weather every 15 mins
 
         // Start Background Polling (Every 60 seconds)
-        setInterval(fetchGoogleData, 60000);
+        // Fixed: Use Visibility API to prevent strict 60s jitter when tab is hidden
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible') {
+                fetchGoogleData();
+            }
+        });
+
+        // Slower fallback poll (5 mins) instead of aggressive 60s
+        setInterval(fetchGoogleData, 300000);
 
     </script>
 </body>
