@@ -172,6 +172,7 @@ app.get('/api/auth/url', (req, res) => {
 
         const authUrl = oAuth2Client.generateAuthUrl({
             access_type: 'offline',
+            prompt: 'consent',
             scope: SCOPES,
         });
         res.json({ url: authUrl });
@@ -387,7 +388,7 @@ app.get('/api/calendar', async (req, res) => {
         apiCache.set(cacheKey, events);
         res.json(events);
     } catch (err) {
-        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
     }
 });
 
@@ -433,7 +434,7 @@ app.get('/api/inbox', async (req, res) => {
         apiCache.set(cacheKey, messages);
         res.json(messages);
     } catch (err) {
-        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
     }
 });
 
