@@ -54,8 +54,9 @@
 
     <!-- Top Navigation & Zen Toggle -->
     <div
-        class="w-full max-w-[1400px] flex justify-between items-center mb-10 transition-all duration-700 relative z-50">
-        <h1 class="text-2xl font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500">
+        class="w-full max-w-[1400px] flex flex-col md:flex-row justify-between items-center mb-8 gap-6 md:gap-0 transition-all duration-700 relative z-50">
+        <h1
+            class="text-2xl font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500 text-center md:text-left">
             Sabrina's <span style="color: var(--accent-text)" class="transition-colors duration-800">Control
                 Centre</span></h1>
 
@@ -85,7 +86,7 @@
             </div>
         </div>
 
-        <div class="flex items-center space-x-6">
+        <div class="flex flex-wrap justify-center items-center gap-4">
             <!-- Context Toggle -->
             <div class="glass flex items-center rounded-full p-1 hide-in-zen transition-opacity duration-500">
                 <button id="context-professional"
@@ -95,7 +96,7 @@
             </div>
 
             <!-- Auth Status -->
-            <button id="auth-status" onclick="document.getElementById('auth-modal').classList.remove('hidden')"
+            <button id="auth-status" onclick="showAuthModal()"
                 class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500 cursor-pointer hover:bg-red-500/10 active:scale-95">
                 Google Not Connected
             </button>
@@ -639,8 +640,11 @@
             container.innerHTML = messages.map(msg => {
                 const title = (msg.subject || 'Email').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 return `
-                <div class="inbox-item p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
+                <div class="inbox-item w-full p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
                      draggable="true" 
+                     ontouchstart="this.classList.add('is-dragging');"
+                     ontouchend="this.classList.remove('is-dragging');"
+                     ontouchcancel="this.classList.remove('is-dragging');"
                      ondragstart="this.classList.add('is-dragging'); event.dataTransfer.setData('text/plain', 'NEW_TASK:' + '${title}');"
                      ondragend="this.classList.remove('is-dragging');">
                     <p class="text-xs font-semibold text-white/70 truncate mb-1">${msg.from}</p>
@@ -733,6 +737,11 @@
                     e.dataTransfer.setData('text/plain', task.id);
                 });
                 el.addEventListener('dragend', () => el.classList.remove('dragging', 'is-dragging'));
+
+                // Explicit Touch events for Mobile Polyfill Haptics
+                el.addEventListener('touchstart', () => el.classList.add('is-dragging'), { passive: true });
+                el.addEventListener('touchend', () => el.classList.remove('is-dragging'), { passive: true });
+                el.addEventListener('touchcancel', () => el.classList.remove('is-dragging'), { passive: true });
 
                 // Checkbox event (Mark Done)
                 const cb = el.querySelector('.task-checkbox');
