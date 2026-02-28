@@ -192,13 +192,13 @@
                     <div class="bg-white/5 p-3 shrink-0 border-b border-white/10 flex justify-between items-center">
                         <div class="flex items-center">
                             <h2 class="text-sm font-semibold flex items-center text-white/90">
-                                <svg class="w-4 h-4 mr-2" style="color: var(--accent-text);" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 mr-2 text-white" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
                                     </path>
                                 </svg>
-                                <span style="color: var(--accent-text);">MailCraft</span>
+                                <span>MailCraft</span>
                             </h2>
                         </div>
                         <button id="close-mailcraft-btn"
@@ -223,20 +223,19 @@
 
                         <div class="flex flex-col gap-3 shrink-0 mb-2">
                             <span
-                                class="text-[11px] text-white/70 uppercase tracking-widest font-bold flex justify-between mb-1">
+                                class="text-[11px] text-white/50 uppercase tracking-widest font-bold flex justify-between mb-1">
                                 Select Tone
-                                <span id="mailcraft-selected-tone-label" class="font-bold"
-                                    style="color: var(--accent-text);">Professional</span>
+                                <span id="mailcraft-selected-tone-label"
+                                    class="font-bold text-white uppercase">PROFESSIONAL</span>
                             </span>
-                            <div id="mailcraft-tones-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div id="mailcraft-tones-container" class="flex flex-wrap gap-2.5 w-full">
                                 <!-- Generated Dynamically -->
                             </div>
                         </div>
 
                         <div class="mt-auto pt-2 shrink-0">
                             <button id="mailcraft-generate-btn"
-                                class="w-full min-h-[48px] rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold flex justify-center items-center"
-                                style="color: var(--accent-text);">
+                                class="w-full min-h-[48px] rounded-xl bg-[#333333] hover:bg-[#444444] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold flex justify-center items-center text-white border border-white/5">
                                 Generate Draft <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1413,20 +1412,19 @@
             const container = document.getElementById('mailcraft-tones-container');
             container.innerHTML = TONES.map(tone => {
                 const isActive = tone === activeMailCraftTone;
-                // Add deeper background and whiter text for unselected state to improve legibility
                 const activeStyle = isActive
-                    ? `background: var(--accent-text); color: #ffffff; border-color: var(--accent-text); text-shadow: 0 1px 2px rgba(0,0,0,0.2); opacity: 1;`
-                    : `border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.3); opacity: 1;`;
+                    ? `border-color: rgba(255,255,255,0.9); color: #ffffff; background: rgba(255,255,255,0.05);`
+                    : `border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.2);`;
                 return `
                     <button data-tone="${tone}" 
-                            class="mailcraft-tone-btn glass-card text-[12px] capitalize min-h-[44px] flex items-center justify-center rounded-xl border transition-all duration-200 font-semibold tracking-wide hover:bg-white/10 focus:outline-none"
+                            class="mailcraft-tone-btn glass-card text-[13px] capitalize px-4 py-2 flex items-center justify-center rounded-xl border transition-all duration-200 font-semibold tracking-wide hover:bg-white/10 focus:outline-none flex-grow-0"
                             style="${activeStyle}">
                         ${tone}
                     </button>
                 `;
             }).join('');
 
-            document.getElementById('mailcraft-selected-tone-label').textContent = activeMailCraftTone.charAt(0).toUpperCase() + activeMailCraftTone.slice(1);
+            document.getElementById('mailcraft-selected-tone-label').textContent = activeMailCraftTone.toUpperCase();
         }
 
         function setMailCraftTone(tone) {
