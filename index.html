@@ -1305,8 +1305,26 @@
                 checkAuthAndFetch('inbox', 'inbox-container', renderInbox);
             }
 
-            // Re-fetch trips if necessary (optional polling)
-            checkAuthAndFetch('trips', 'trips-container', renderTrips);
+            // Intelligent Trips loading with auto-retry
+            let tripAttempts = 0;
+            let tripInterval;
+
+            function fetchTripsLogic() {
+                checkAuthAndFetch('trips', 'trips-container', (data, container) => {
+                    renderTrips(data, container);
+                    if (data && data.length > 0) {
+                        if (tripInterval) clearInterval(tripInterval);
+                    } else if (tripAttempts < 5) {
+                        tripAttempts++;
+                        container.innerHTML = '<div class="text-sm text-white/40 italic p-4 relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>Parsing travel data...</div>';
+                    } else {
+                        if (tripInterval) clearInterval(tripInterval);
+                    }
+                });
+            }
+
+            fetchTripsLogic(); // Initial fetch
+            tripInterval = setInterval(fetchTripsLogic, 4000);
 
             // Flash the auth pill briefly to indicate a background sync occurred
             if (authStatusEl.textContent.includes('Connected')) {
