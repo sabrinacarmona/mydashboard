@@ -9,6 +9,7 @@ const { GoogleGenAI } = require('@google/genai');
 // --- Caching and Database Dependencies ---
 const Database = require('better-sqlite3');
 const NodeCache = require('node-cache');
+const cron = require('node-cron');
 
 let ai = null;
 if (process.env.GEMINI_API_KEY) {
@@ -64,6 +65,12 @@ db.exec(`
     duration_minutes INTEGER,
     completed_at TEXT,
     task_id_optional TEXT
+  );
+  CREATE TABLE IF NOT EXISTS grouped_trips (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    context_mode TEXT,
+    trip_data TEXT,
+    last_updated TEXT
   );
 `);
 
@@ -397,10 +404,10 @@ app.get('/api/inbox', async (req, res) => {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // Get actionable messages (Starred or Unread that are not promotions/social, MUST be in inbox)
+        // Get actionable messages (in inbox, not promotions/social)
         const response = await gmail.users.messages.list({
             userId: 'me',
-            q: 'in:inbox (is:starred OR (is:unread -category:promotions -category:social))',
+            q: 'in:inbox -category:promotions -category:social',
             maxResults: 5
         });
 
@@ -430,119 +437,203 @@ app.get('/api/inbox', async (req, res) => {
     }
 });
 
-// --- Trips Endpoint (Parsing Inbox & Calendar) ---
-// Not heavily cached since it processes multiple calendars, maybe 5 min cache too.
-app.get('/api/trips', async (req, res) => {
-    const context = req.query.context || 'both';
-    const cacheKey = `tripsData_${context}`;
-    const cachedData = apiCache.get(cacheKey);
-    if (cachedData) {
-        res.setHeader('X-Cache', 'HIT');
-        return res.json(cachedData);
-    }
-
+// --- Background Sync for Trips ---
+const syncTripsForContext = async (context) => {
+    console.log(`[Trip Sync] Starting sync for context: ${context}`);
     try {
         const auth = await getOAuth2Client();
+        if (!auth) {
+            console.log(`[Trip Sync] Auth missing, skipping.`);
+            return;
+        }
+
         const gmail = google.gmail({ version: 'v1', auth });
         const calendar = google.calendar({ version: 'v3', auth });
 
-        const parseTrip = (subject, dateStrFallback) => {
-            let tripType = 'flight';
-            let cleanTitle = subject;
-            const lower = subject.toLowerCase();
+        // 1. Fetch Gmail Data
+        let emailData = [];
+        try {
+            const query = 'in:inbox (subject:flight OR subject:hotel OR subject:reservation OR subject:booking OR subject:train OR subject:itinerary) newer_than:30d';
+            const response = await gmail.users.messages.list({
+                userId: 'me',
+                q: query,
+                maxResults: 15
+            });
+            if (response.data.messages) {
+                const msgs = await Promise.all(response.data.messages.map(async (m) => {
+                    const detail = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: m.id,
+                        format: 'metadata',
+                        metadataHeaders: ['Subject', 'Date']
+                    });
+                    const headers = detail.data.payload.headers;
+                    const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+                    const date = headers.find(h => h.name === 'Date')?.value || 'Unknown Date';
+                    return { source: 'gmail', subject, date, snippet: detail.data.snippet };
+                }));
+                emailData = msgs;
+            }
+        } catch (e) { console.error('[Trip Sync] Gmail fetch failed', e.message); }
 
-            if (lower.includes('hotel') || lower.includes('reservation') || lower.includes('stay') || lower.includes('airbnb')) {
-                tripType = 'hotel';
-            } else if (lower.includes('train')) {
-                tripType = 'train';
+        // 2. Fetch Calendar Data
+        let calendarData = [];
+        try {
+            let calendarIds = ['primary'];
+            if (context === 'professional') {
+                calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+            } else if (context === 'personal') {
+                calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+            } else {
+                const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+                const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+                calendarIds = Array.from(new Set([...profCals, ...persCals]));
+                if (calendarIds.length === 0) calendarIds = ['primary'];
+            }
+            calendarIds = calendarIds.map(id => id.trim());
+
+            const calListResponse = await calendar.calendarList.list();
+            let targetCals = calListResponse.data.items;
+            if (calendarIds[0] !== 'primary') {
+                targetCals = targetCals.filter(cal => calendarIds.includes(cal.id));
             }
 
-            cleanTitle = cleanTitle.replace("TripIt Pro alert: ", "")
-                .replace("Gate update for ", "Gate Update: ")
-                .replace("Departure summary for your flight to ", "Flight to ")
-                .replace(": Travel Advisory - A terminal change for your upcoming flight", " (Terminal Change)")
-                .replace("Reservation confirmed", "Hotel/Stay confirmed");
+            const calPromises = targetCals.map(cal => {
+                return calendar.events.list({
+                    calendarId: cal.id,
+                    timeMin: new Date().toISOString(),
+                    timeMax: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString(),
+                    maxResults: 30,
+                    singleEvents: true,
+                    orderBy: 'startTime',
+                }).then(response => {
+                    if (!response.data.items) return [];
+                    const travelEvents = response.data.items.filter(e => {
+                        const text = (e.summary + " " + (e.description || "")).toLowerCase();
+                        return ['flight', 'train', 'hotel', 'travelperk', 'tripit', 'rental', 'reservation'].some(kw => text.includes(kw));
+                    });
+                    return travelEvents.map(e => ({
+                        source: 'calendar',
+                        subject: e.summary,
+                        start: e.start.dateTime || e.start.date,
+                        end: e.end.dateTime || e.end.date,
+                        description: e.description || ''
+                    }));
+                }).catch(err => { console.error(`[Trip Sync] Calendar ${cal.summary} failed`, err.message); return []; });
+            });
+            calendarData = (await Promise.all(calPromises)).flat();
+        } catch (e) { console.error('[Trip Sync] Calendar fetch failed', e.message); }
 
-            let extractedDate = dateStrFallback;
-            const dateMatch = cleanTitle.match(/on (\d{1,2}\/\d{1,2}\/\d{4})/);
-            if (dateMatch) {
-                extractedDate = dateMatch[1];
-                cleanTitle = cleanTitle.replace(dateMatch[0], "").trim();
-            } else if (cleanTitle.match(/for (([A-Z][a-z]+),\s+([A-Z][a-z]+)\s+\d+)/i)) {
-                const m = cleanTitle.match(/for (([A-Z][a-z]+),\s+([A-Z][a-z]+)\s+\d+)/i);
-                extractedDate = m[1];
-                cleanTitle = cleanTitle.replace(m[0], "").trim();
-            }
+        const combinedData = [...emailData, ...calendarData];
+        if (combinedData.length === 0) return;
 
-            return { tripType, cleanTitle, extractedDate };
-        };
-
-        let calendarIds = ['primary'];
-        if (context === 'professional') {
-            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
-        } else if (context === 'personal') {
-            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
-        } else {
-            const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
-            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
-            calendarIds = Array.from(new Set([...profCals, ...persCals]));
-            // Only fallback to primary if 'both' is requested and absolutely nothing is configured
-            if (calendarIds.length === 0) calendarIds = ['primary'];
-        }
-        calendarIds = calendarIds.map(id => id.trim());
-
-        const calListResponse = await calendar.calendarList.list();
-        let targetCals = calListResponse.data.items;
-
-        // Filter by context calendarIds if they are not 'primary' fallback
-        if (calendarIds[0] !== 'primary') {
-            targetCals = targetCals.filter(cal => calendarIds.includes(cal.id));
+        // 3. Process via Gemini
+        if (!ai) {
+            console.log("[Trip Sync] Gemini API absent, cannot group trips.");
+            return;
         }
 
-        const calPromises = targetCals.map(cal => {
-            return calendar.events.list({
-                calendarId: cal.id,
-                timeMin: new Date().toISOString(),
-                timeMax: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString(),
-                maxResults: 50,
-                singleEvents: true,
-                orderBy: 'startTime',
-            }).then(response => {
-                if (!response.data.items) return [];
-                const travelEvents = response.data.items.filter(e => {
-                    const text = (e.summary + " " + (e.description || "")).toLowerCase();
-                    return ['flight', 'train', 'hotel', 'travelperk', 'tripit', 'rental', 'reservation'].some(kw => text.includes(kw));
-                });
-                return travelEvents.map(e => {
-                    const start = e.start.dateTime || e.start.date;
-                    const formattedDate = new Date(start).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const prompt = `
+You are a highly intelligent travel grouping engine.
+I am providing you with unstructured data representing a user's upcoming travel from both their Calendar and their Gmail Inbox.
+Your job is to:
+1. Identify distinct "Trips" (e.g., a trip to San Francisco, a trip to London).
+2. Group all related flights, hotels, and train bookings under their respective parent Trips.
+3. AGGRESSIVELY DEDUPLICATE: If a flight appears in both the calendar and the inbox, merge it into a SINGLE component.
+4. Format the output strictly as the following JSON schema. No extra markdown, no code blocks, just raw JSON.
 
-                    const parsed = parseTrip(e.summary || "Upcoming Trip", formattedDate);
-                    parsed.extractedDate = formattedDate;
+Schema to follow EXACTLY:
+[
+  {
+    "TripName": "City/Location Name",
+    "StartDate": "YYYY-MM-DD",
+    "EndDate": "YYYY-MM-DD",
+    "Components": [
+      {
+        "Type": "Flight | Hotel | Train | Other",
+        "Title": "Short description (e.g. BA285 to SFO)",
+        "DateTime": "MMM D, h:mm A",
+        "ConfirmationCode": "Found code or N/A" 
+      }
+    ]
+  }
+]
 
-                    return {
-                        id: e.id,
-                        subject: parsed.cleanTitle,
-                        dateStr: parsed.extractedDate,
-                        tripType: parsed.tripType,
-                        timestamp: new Date(start).getTime()
-                    };
-                });
-            }).catch(err => { console.error(`Calendar ${cal.summary} Trips Error:`, err); return []; });
+Raw Data to Process:
+${JSON.stringify(combinedData)}
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
         });
 
-        const allCalTripsArrays = await Promise.all(calPromises);
-        let allTrips = allCalTripsArrays.flat();
+        const responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const groupedTrips = JSON.parse(responseText);
 
-        allTrips.sort((a, b) => a.timestamp - b.timestamp);
-        const results = allTrips.slice(0, 10);
+        // 4. Save to Database
+        const now = new Date().toISOString();
+        const existing = db.prepare('SELECT id FROM grouped_trips WHERE context_mode = ?').get(context);
 
-        res.setHeader('X-Cache', 'MISS');
-        apiCache.set(cacheKey, results);
-        res.json(results);
+        if (existing) {
+            db.prepare('UPDATE grouped_trips SET trip_data = ?, last_updated = ? WHERE id = ?')
+                .run(JSON.stringify(groupedTrips), now, existing.id);
+        } else {
+            db.prepare('INSERT INTO grouped_trips (context_mode, trip_data, last_updated) VALUES (?, ?, ?)')
+                .run(context, JSON.stringify(groupedTrips), now);
+        }
 
+        console.log(`[Trip Sync] Successfully synced trips for ${context}`);
     } catch (err) {
-        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') });
+        console.error(`[Trip Sync] Error syncing context ${context}:`, err);
+    }
+};
+
+// Helper for rate-limiting
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Schedule background sync every hour
+cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Running scheduled trip sync...');
+    await syncTripsForContext('professional');
+    await sleep(5000);
+    await syncTripsForContext('personal');
+    await sleep(5000);
+    await syncTripsForContext('both');
+});
+
+// Optional manual trigger endpoint if needed immediately
+app.post('/api/trips/sync', async (req, res) => {
+    const context = req.query.context || 'both';
+    if (context === 'all') {
+        // Test helper to sync all 3 with delays
+        res.json({ success: true, message: 'Full sync started sequentially' });
+        await syncTripsForContext('professional');
+        await sleep(5000);
+        await syncTripsForContext('personal');
+        await sleep(5000);
+        await syncTripsForContext('both');
+        return;
+    }
+    syncTripsForContext(context); // Run async for a single specified context
+    res.json({ success: true, message: 'Sync started for ' + context });
+});
+
+
+// --- Trips Endpoint (Zero-Latency SQLite Read) ---
+app.get('/api/trips', (req, res) => {
+    const context = req.query.context || 'both';
+    try {
+        const row = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get(context);
+        if (row && row.trip_data) {
+            res.json(JSON.parse(row.trip_data));
+        } else {
+            // If empty, trigger a background sync so next time it's there
+            syncTripsForContext(context);
+            res.json([]);
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -574,7 +665,7 @@ Respond with ONLY a valid JSON object in the exact following format, with no mar
         `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-2.5-flash',
             contents: prompt,
         });
 
