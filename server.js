@@ -566,6 +566,7 @@ Your job is to:
 2. Group all related flights, hotels, and train bookings under their respective parent Trips.
 3. AGGRESSIVELY DEDUPLICATE: If a flight appears in both the calendar and the inbox, merge it into a SINGLE component.
 4. Format the output strictly as the following JSON schema. No extra markdown, no code blocks, just raw JSON.
+5. CRITICAL DATE OVERLAP RULE: NEVER create multiple separate trips for the same or overlapping date ranges. If an event, flight, or hotel happens within the date range of another trip (or within 1-2 days of it), it MUST be grouped into that existing master trip. Your final JSON output MUST NOT contain any trips with overlapping StartDate and EndDate windows.
 
 Schema to follow EXACTLY:
 [
