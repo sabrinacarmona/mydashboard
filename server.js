@@ -397,10 +397,10 @@ app.get('/api/inbox', async (req, res) => {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // Get actionable messages (Starred or Unread that are not promotions/social)
+        // Get actionable messages (Starred or Unread that are not promotions/social, MUST be in inbox)
         const response = await gmail.users.messages.list({
             userId: 'me',
-            q: 'is:starred OR (is:unread -category:promotions -category:social)',
+            q: 'in:inbox (is:starred OR (is:unread -category:promotions -category:social))',
             maxResults: 5
         });
 
