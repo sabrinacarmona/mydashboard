@@ -175,7 +175,9 @@ body.zen-active .zen-focus {
 }
 
 /* Agent Gamma Haptic & Physics Hooks */
-.is-dragging {
+.is-dragging,
+.task-item:active,
+.inbox-item:active {
     transform: scale(1.05) rotate(1deg) !important;
     z-index: 50;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
@@ -185,4 +187,7 @@ body.zen-active .zen-focus {
 .task-item,
 .inbox-item {
     transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease !important;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
