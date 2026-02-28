@@ -331,14 +331,15 @@ app.get('/api/calendar', async (req, res) => {
         let calendarIds = ['primary']; // Default fallback
 
         if (context === 'professional') {
-            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
         } else if (context === 'personal') {
-            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
         } else {
             // Context 'both' -> Combine both
             const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
-            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
             calendarIds = Array.from(new Set([...profCals, ...persCals]));
+            // Only fallback to primary if 'both' is requested and absolutely nothing is configured
             if (calendarIds.length === 0) calendarIds = ['primary'];
         }
 
@@ -396,10 +397,10 @@ app.get('/api/inbox', async (req, res) => {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // Get unread messages
+        // Get actionable messages (Starred or Unread that are not promotions/social)
         const response = await gmail.users.messages.list({
             userId: 'me',
-            q: 'in:inbox is:unread',
+            q: 'is:starred OR (is:unread -category:promotions -category:social)',
             maxResults: 5
         });
 
@@ -478,13 +479,14 @@ app.get('/api/trips', async (req, res) => {
 
         let calendarIds = ['primary'];
         if (context === 'professional') {
-            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
         } else if (context === 'personal') {
-            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
         } else {
             const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
-            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : ['primary'];
+            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
             calendarIds = Array.from(new Set([...profCals, ...persCals]));
+            // Only fallback to primary if 'both' is requested and absolutely nothing is configured
             if (calendarIds.length === 0) calendarIds = ['primary'];
         }
         calendarIds = calendarIds.map(id => id.trim());
