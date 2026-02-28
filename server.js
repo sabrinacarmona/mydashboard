@@ -39,7 +39,7 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname)));
 
-const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'];
 const TOKEN_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/token.json' : path.join(__dirname, 'token.json');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 
@@ -714,6 +714,95 @@ ${JSON.stringify(combinedData)}
 
     } catch (err) {
         console.error('[Auto-Pilot] Error during execution:', err);
+    }
+});
+
+// --- Disaster Recovery Protocol (Automated Backup) ---
+const sendDatabaseBackup = async (triggerSource = 'Cron') => {
+    console.log(`[Backup] Starting database backup. Trigger: ${triggerSource}`);
+    try {
+        const auth = await getOAuth2Client();
+        if (!auth) {
+            console.log(`[Backup] Auth missing, skipping backup.`);
+            return false;
+        }
+
+        if (!fs.existsSync(DB_PATH)) {
+            console.log(`[Backup] Database file not found at ${DB_PATH}. Skipping.`);
+            return false;
+        }
+
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // Get user's own email address
+        const profile = await gmail.users.getProfile({ userId: 'me' });
+        const userEmail = profile.data.emailAddress;
+
+        // Read and encode the database
+        const dbBuffer = fs.readFileSync(DB_PATH);
+        const dbBase64 = dbBuffer.toString('base64');
+
+        // Construct MIME Boundary
+        const boundary = "SabrinaOS_Backup_Boundary_" + Date.now().toString(16);
+        const dateStr = new Date().toISOString().split('T')[0];
+
+        const messageLines = [
+            `To: ${userEmail}`,
+            `From: "SabrinaOS Auto-Pilot" <${userEmail}>`,
+            `Subject: 🛡️ SabrinaOS Daily DB Backup (${dateStr})`,
+            `Content-Type: multipart/mixed; boundary="${boundary}"`,
+            '',
+            `--${boundary}`,
+            'Content-Type: text/plain; charset="UTF-8"',
+            '',
+            `Attached is your latest SabrinaOS SQLite database backup (database_backup_${dateStr}.db). Triggered by: ${triggerSource}.`,
+            `Keep this safe!`,
+            '',
+            `--${boundary}`,
+            `Content-Type: application/x-sqlite3`,
+            `Content-Disposition: attachment; filename="database_backup_${dateStr}.db"`,
+            `Content-Transfer-Encoding: base64`,
+            '',
+            dbBase64,
+            `--${boundary}--`
+        ];
+
+        const rawMessage = messageLines.join('\r\n');
+
+        // Base64url encode the entire MIME string
+        const encodedMessage = Buffer.from(rawMessage)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+
+        await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw: encodedMessage
+            }
+        });
+
+        console.log(`[Backup] Successfully emailed database to ${userEmail}`);
+        return true;
+    } catch (err) {
+        console.error(`[Backup] Failed to send database backup:`, err);
+        return false;
+    }
+};
+
+// Execute at 3:00 AM every night
+cron.schedule('0 3 * * *', async () => {
+    await sendDatabaseBackup('Cron');
+});
+
+// Manual trigger
+app.post('/api/backup/trigger', async (req, res) => {
+    const success = await sendDatabaseBackup('Manual Trigger');
+    if (success) {
+        res.json({ success: true, message: 'Backup dispatched to your email!' });
+    } else {
+        res.status(500).json({ error: 'Failed to dispatch backup. Check server logs.' });
     }
 });
 
