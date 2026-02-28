@@ -74,7 +74,14 @@ db.exec(`
     trip_data TEXT,
     last_updated TEXT
   );
-  
+`);
+
+// Safe migrations for older DB schemas on persistent volumes
+try { db.exec("ALTER TABLE tasks ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+try { db.exec("ALTER TABLE notes ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+try { db.exec("ALTER TABLE grouped_trips ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+
+db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tasks_status_context ON tasks(status, context_mode);
   CREATE INDEX IF NOT EXISTS idx_pomodoros_date ON pomodoros(completed_at);
   CREATE INDEX IF NOT EXISTS idx_rituals_lastResetDate ON rituals(lastResetDate);
