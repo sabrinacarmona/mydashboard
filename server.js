@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
@@ -21,7 +22,8 @@ if (process.env.GEMINI_API_KEY) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(helmet());
+app.use(cors({ origin: ['http://localhost:3000', process.env.RAILWAY_URL || ''] }));
 app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname)));
@@ -72,6 +74,10 @@ db.exec(`
     trip_data TEXT,
     last_updated TEXT
   );
+  
+  CREATE INDEX IF NOT EXISTS idx_tasks_status_context ON tasks(status, context_mode);
+  CREATE INDEX IF NOT EXISTS idx_pomodoros_date ON pomodoros(completed_at);
+  CREATE INDEX IF NOT EXISTS idx_rituals_lastResetDate ON rituals(lastResetDate);
 `);
 
 // --- Initialization: Cache ---
@@ -130,7 +136,6 @@ if (fs.existsSync(NOTES_PATH)) {
     } catch (err) { console.error("Notes migration failed:", err); }
 }
 
-// Helper to get Google API Config
 function getGoogleApiConfig() {
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         return {
@@ -139,12 +144,11 @@ function getGoogleApiConfig() {
             redirect_uris: [process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback']
         };
     }
-    if (fs.existsSync(CREDENTIALS_PATH)) {
-        const content = fs.readFileSync(CREDENTIALS_PATH);
-        const credentials = JSON.parse(content);
+    if (process.env.GOOGLE_CREDENTIALS_JSON) {
+        const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
         return credentials.installed || credentials.web;
     }
-    throw new Error('credentials.json not found and environment variables not set.');
+    throw new Error('GOOGLE_CREDENTIALS_JSON environment variable is not set.');
 }
 
 // Helper wrapper to get OAuth2 Client

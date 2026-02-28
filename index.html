@@ -627,11 +627,19 @@
                 }
             }
         });
+        // --- AbortController for Context Switching Race Conditions ---
+        let activeControllers = {};
+        function getSignal(key) {
+            if (activeControllers[key]) activeControllers[key].abort();
+            activeControllers[key] = new AbortController();
+            return activeControllers[key].signal;
+        }
 
         // --- Authentication Flow ---
         async function checkAuthAndFetch(endpoint, containerId, renderFn) {
             try {
-                const res = await fetch(`${API_BASE}/${endpoint}?context=${currentContext}`);
+                const signal = getSignal(endpoint);
+                const res = await fetch(`${API_BASE}/${endpoint}?context=${currentContext}`, { signal });
                 const data = await res.json();
 
                 if (data.requiresAuth) {
@@ -647,6 +655,7 @@
 
                 renderFn(data, document.getElementById(containerId));
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.error(`Failed fetching ${endpoint}:`, err);
                 document.getElementById(containerId).innerHTML = `<div class="text-red-400 text-sm p-4 bg-red-500/10 rounded-lg border border-red-500/20">Error: ${err.message}</div>`;
             }
@@ -829,10 +838,12 @@
         // --- Kanban Logic ---
         async function loadTasks() {
             try {
-                const res = await fetch(`${API_BASE}/tasks?context=${currentContext}`);
+                const signal = getSignal('tasks');
+                const res = await fetch(`${API_BASE}/tasks?context=${currentContext}`, { signal });
                 localTasks = await res.json();
                 renderTasks();
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.error("Failed loading tasks", err);
             }
         }
@@ -1013,7 +1024,8 @@
         // --- Phase 28 & 29 Data Loaders (Rituals & Notes) ---
         async function loadRituals() {
             try {
-                const res = await fetch(`${API_BASE}/rituals`);
+                const signal = getSignal('rituals');
+                const res = await fetch(`${API_BASE}/rituals`, { signal });
                 if (!res.ok) throw new Error('Failed to fetch rituals');
                 const rituals = await res.json();
 
@@ -1044,6 +1056,7 @@
                     container.appendChild(el);
                 });
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.error("Rituals load error:", err);
             }
         }
@@ -1063,12 +1076,14 @@
 
         async function loadNotes() {
             try {
-                const res = await fetch(`${API_BASE}/notes?context=${currentContext}`);
+                const signal = getSignal('notes');
+                const res = await fetch(`${API_BASE}/notes?context=${currentContext}`, { signal });
                 const data = await res.json();
                 if (data && data.content !== undefined) {
                     document.getElementById('quick-notes-area').value = data.content;
                 }
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.error("Notes load error:", err);
             }
         }
@@ -1117,7 +1132,8 @@
 
         async function fetchPomodoroStats() {
             try {
-                const res = await fetch(`${API_BASE}/pomodoros/stats`);
+                const signal = getSignal('pomodoros');
+                const res = await fetch(`${API_BASE}/pomodoros/stats`, { signal });
                 const data = await res.json();
 
                 // Update Today Text
@@ -1162,6 +1178,7 @@
                     });
                 }
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.error("Failed to fetch focus stats", err);
             }
         }
