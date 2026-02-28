@@ -5,6 +5,13 @@ const path = require('path');
 const { google } = require('googleapis');
 require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
+const Anthropic = require('@anthropic-ai/sdk');
+
+if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("FATAL: ANTHROPIC_API_KEY not found in environment. MailCraft requires this key to boot.");
+    process.exit(1);
+}
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // --- Caching and Database Dependencies ---
 const Database = require('better-sqlite3');
@@ -392,8 +399,15 @@ app.get('/api/calendar', async (req, res) => {
     }
 });
 
-// --- Inbox Endpoint (Uncached for Real-Time Archiving) ---
+// --- Inbox Endpoint (Short-Lived 30s Cache for Rate Limiting Mitigation) ---
 app.get('/api/inbox', async (req, res) => {
+    const cacheKey = 'inboxData';
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
     try {
         const auth = await getOAuth2Client();
         const gmail = google.gmail({ version: 'v1', auth });
@@ -406,6 +420,7 @@ app.get('/api/inbox', async (req, res) => {
         });
 
         if (!response.data.messages) {
+            apiCache.set(cacheKey, [], 30);
             return res.json([]);
         }
 
@@ -422,6 +437,8 @@ app.get('/api/inbox', async (req, res) => {
             return { id: msg.id, snippet: detail.data.snippet, subject, from };
         }));
 
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, messages, 30); // 30 second TTL
         res.json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
@@ -727,6 +744,171 @@ app.get('/api/pomodoros/stats', (req, res) => {
     } catch (err) {
         console.error("Pomodoro Stats Error:", err);
         res.status(500).json({ error: 'Failed to fetch Pomodoro stats' });
+    }
+});
+
+// --- MailCraft SSE Endpoint ---
+const TONE_LABELS = {
+    professional: "Professional",
+    warm: "Warm",
+    concise: "Concise",
+    friendly: "Friendly",
+    formal: "Formal",
+    persuasive: "Persuasive",
+    apologetic: "Apologetic",
+    grateful: "Grateful",
+};
+
+const TONE_DESCRIPTIONS = {
+    professional: "Clear, polished, and business-appropriate. Confident without being stiff.",
+    warm: "Friendly and personable with genuine warmth. Approachable yet respectful.",
+    concise: "Brief and to the point. Every sentence earns its place. No filler.",
+    friendly: "Casual and upbeat. Like writing to a colleague you get along with.",
+    formal: "Traditional business correspondence. Proper structure and courteous language.",
+    persuasive: "Compelling and action-oriented. Builds a clear case with confident language.",
+    apologetic: "Sincere and accountable. Acknowledges the issue and offers a path forward.",
+    grateful: "Genuinely thankful and appreciative. Specific about what you value.",
+};
+
+function buildSystemPrompt(tone) {
+    return `You are an expert email writer. Your task is to transform the user's rough thoughts into a polished, well-structured email.
+
+Tone: ${TONE_LABELS[tone]} — ${TONE_DESCRIPTIONS[tone]}
+
+Rules:
+- Write ONLY the email body. No subject line, no meta-commentary, no explanations.
+- Start directly with the greeting (e.g., "Hi Sarah," or "Dear Mr. Thompson,").
+- End with an appropriate sign-off (e.g., "Best regards," or "Thanks,") followed by a blank line for the sender's name.
+- Match the tone precisely. Every word should feel intentional.
+- Keep paragraphs short (2-3 sentences max) for readability.
+- If the user provides context about an email they're replying to, weave in relevant references naturally.
+- Never use placeholder brackets like [Name] — if information is missing, write around it gracefully.
+- Do not include a subject line or any text before the greeting.`;
+}
+
+function buildUserMessage(rawThoughts, replyContext) {
+    let message = `Here are my rough thoughts for this email:\n\n${rawThoughts}`;
+    if (replyContext && replyContext.trim().length > 0) {
+        message += `\n\n---\n\nThis is a reply to the following email:\n\n${replyContext}`;
+    }
+    return message;
+}
+
+app.post('/api/mailcraft', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const { draftText, tone, replyContext } = req.body;
+    if (!draftText || !tone) {
+        res.write(`data: ${JSON.stringify({ error: "Missing required fields: draftText and tone" })}\n\n`);
+        return res.end();
+    }
+
+    try {
+        const stream = await anthropic.messages.stream({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 1024,
+            system: buildSystemPrompt(tone),
+            messages: [
+                {
+                    role: "user",
+                    content: buildUserMessage(draftText, replyContext),
+                },
+            ],
+        });
+
+        stream.on('text', (text) => {
+            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        });
+
+        stream.on('inputJson', (partialJson) => {
+            // Not applicable since no tool calls, but just in case
+        });
+
+        stream.on('end', () => {
+            res.write('data: [DONE]\n\n');
+            res.end();
+        });
+
+        stream.on('error', (err) => {
+            console.error('Anthropic Streaming Error:', err);
+            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.end();
+        });
+
+        req.on('close', () => {
+            stream.controller.abort();
+        });
+    } catch (err) {
+        console.error("MailCraft error:", err);
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+    }
+});
+
+// --- MailCraft Send Endpoint ---
+app.post('/api/mailcraft/send', async (req, res) => {
+    const { replyToMessageId, payloadText } = req.body;
+    if (!replyToMessageId || !payloadText) {
+        return res.status(400).json({ error: "Missing replyToMessageId or payloadText" });
+    }
+
+    try {
+        const auth = await getOAuth2Client();
+        if (!auth) {
+            return res.status(401).json({ error: "Missing Google authentication." });
+        }
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // Fetch original message to get headers for reply
+        const originalMessage = await gmail.users.messages.get({
+            userId: 'me',
+            id: replyToMessageId,
+            format: 'metadata',
+            metadataHeaders: ['Message-ID', 'Subject', 'From', 'To', 'Cc']
+        });
+
+        const headers = originalMessage.data.payload.headers;
+        const originalMessageId = headers.find(h => h.name === 'Message-ID')?.value || '';
+        let subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+        if (!subject.startsWith('Re:')) {
+            subject = 'Re: ' + subject;
+        }
+
+        const to = headers.find(h => h.name === 'From')?.value || '';
+
+        const messageParts = [
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            `In-Reply-To: ${originalMessageId}`,
+            `References: ${originalMessageId}`,
+            `Content-Type: text/plain; charset="UTF-8"`,
+            '',
+            payloadText
+        ];
+        const message = messageParts.join('\n');
+
+        // Base64url encode for Gmail API
+        const encodedMessage = Buffer.from(message)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+
+        // Send via Gmail
+        await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw: encodedMessage,
+                threadId: originalMessage.data.threadId // Keep it in the same thread
+            }
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Failed to send MailCraft reply:", err);
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') });
     }
 });
 
