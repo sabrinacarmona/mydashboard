@@ -858,17 +858,24 @@ cron.schedule('0 * * * *', async () => {
 
 // Optional manual trigger endpoint if needed immediately
 app.post('/api/trips/sync', async (req, res) => {
-    const context = req.query.context || 'all'; // Default to syncing all underlying
+    // The frontend sends a JSON body: { context: "personal" }
+    const context = req.body.context || req.query.context || 'both';
+
     if (context === 'all' || context === 'both') {
-        // Test helper to sync both with delays
         res.json({ success: true, message: 'Full sync started sequentially' });
+
+        // Since we are forcing a full refresh, let's explicitly wipe the db first manually
+        db.prepare("DELETE FROM grouped_trips WHERE context_mode IN ('personal', 'professional')").run();
+
         await syncTripsForContext('professional');
-        await sleep(5000);
         await syncTripsForContext('personal');
         return;
     }
 
     res.json({ success: true, message: `Sync started for context: ${context}` });
+
+    // Wipe just this context to ensure fresh data
+    db.prepare("DELETE FROM grouped_trips WHERE context_mode = ?").run(context);
     await syncTripsForContext(context);
 });
 
