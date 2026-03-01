@@ -611,7 +611,39 @@ ${JSON.stringify(combinedData)}
         });
 
         const responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const groupedTrips = JSON.parse(responseText);
+        const parsedTrips = JSON.parse(responseText);
+
+        // --- Hotfix 4.9.2: JS-Level 14-Day Deduplication ---
+        let groupedTrips = [];
+        if (Array.isArray(parsedTrips) && parsedTrips.length > 0) {
+            parsedTrips.sort((a, b) => new Date(a.StartDate) - new Date(b.StartDate));
+            groupedTrips.push(parsedTrips[0]);
+
+            for (let i = 1; i < parsedTrips.length; i++) {
+                const current = parsedTrips[i];
+                const last = groupedTrips[groupedTrips.length - 1];
+                const lastEnd = new Date(last.EndDate || last.StartDate);
+                const currentStart = new Date(current.StartDate);
+
+                const diffTime = Math.abs(currentStart - lastEnd);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= 14) {
+                    // Merge into last trip
+                    const lastBaseName = last.TripName.split(' & ')[0];
+                    const currentBaseName = current.TripName.split(' & ')[0];
+                    if (!last.TripName.includes(currentBaseName)) {
+                        last.TripName = `${lastBaseName} & ${currentBaseName}`;
+                    }
+                    if (new Date(current.EndDate || current.StartDate) > lastEnd) {
+                        last.EndDate = current.EndDate || current.StartDate;
+                    }
+                    last.Components = [...(last.Components || []), ...(current.Components || [])];
+                } else {
+                    groupedTrips.push(current);
+                }
+            }
+        }
 
         // 4. Save to Database
         const now = new Date().toISOString();

@@ -1079,11 +1079,11 @@
                     el.className = `group flex items-center justify-between p-2 rounded-lg transition-colors hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
                     el.innerHTML = `
                         <label class="flex items-center space-x-3 cursor-pointer flex-1">
-                            <input type="checkbox" class="form-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
-                                ${ritual.completed ? 'checked' : ''} onchange="toggleRitual('${ritual.id}', this.checked)">
+                            <input type="checkbox" class="form-checkbox ritual-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
+                                ${ritual.completed ? 'checked' : ''} data-id="${ritual.id}">
                             <span class="text-sm text-white/90 ${ritual.completed ? 'line-through text-white/50' : ''}">${ritual.title}</span>
                         </label>
-                        <button onclick="deleteRitual('${ritual.id}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-1" title="Delete Ritual">
+                        <button class="ritual-delete-btn opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-1" title="Delete Ritual" data-id="${ritual.id}">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -1676,7 +1676,20 @@
 
         // --- Event Delegation for CSP Compliance ---
         // Instead of inline onclick attributes which are blocked by Helmet, we use delegated listeners
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('.ritual-checkbox')) {
+                toggleRitual(e.target.getAttribute('data-id'), e.target.checked);
+            }
+        });
+
         document.addEventListener('click', (e) => {
+            // Handle Ritual Delete
+            const ritualDeleteBtn = e.target.closest('.ritual-delete-btn');
+            if (ritualDeleteBtn) {
+                deleteRitual(ritualDeleteBtn.getAttribute('data-id'));
+                return;
+            }
+
             // Handle Trip Accordion Toggle
             const tripAccordion = e.target.closest('.trip-accordion');
             if (tripAccordion) {
