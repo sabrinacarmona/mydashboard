@@ -7,12 +7,20 @@ const { google } = require('googleapis');
 require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
 
-// --- Caching and Database Dependencies ---
-const Database = require('better-sqlite3');
+// --- Dependency Injection ---
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const NodeCache = require('node-cache');
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
+const { z } = require('zod');
+const { TripsResponseSchema } = require('./schemas/zodSchemas');
 
+// --- Initialization: Cache ---
+// TTL is 300 seconds (5 minutes)
+const apiCache = new NodeCache({ stdTTL: 300 });
+
+// --- Initialization: Express & AI ---
 let ai = null;
 if (process.env.GEMINI_API_KEY) {
     ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -44,118 +52,24 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://ww
 const TOKEN_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/token.json' : path.join(__dirname, 'token.json');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 
-// --- Initialization: Database ---
-const DB_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/database.db' : path.join(__dirname, 'database.db');
-
-// Ensure the directory exists before attempting to open the database
-const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-    console.log(`[Database] Directory not found. Creating: ${dbDir}`);
-    fs.mkdirSync(dbDir, { recursive: true });
-}
-
-const db = new Database(DB_PATH);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS tasks (
-    id TEXT PRIMARY KEY,
-    title TEXT,
-    status TEXT,
-    context_mode TEXT DEFAULT 'both',
-    source_reference TEXT
-  );
-  CREATE TABLE IF NOT EXISTS rituals (
-    id TEXT PRIMARY KEY,
-    title TEXT,
-    completed INTEGER DEFAULT 0,
-    lastResetDate TEXT
-  );
-  CREATE TABLE IF NOT EXISTS notes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content TEXT,
-    context_mode TEXT DEFAULT 'both'
-  );
-  CREATE TABLE IF NOT EXISTS pomodoros (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    duration_minutes INTEGER,
-    completed_at TEXT,
-    task_id_optional TEXT
-  );
-  CREATE TABLE IF NOT EXISTS grouped_trips (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    context_mode TEXT,
-    trip_data TEXT,
-    last_updated TEXT
-  );
-`);
-
-// Safe migrations for older DB schemas on persistent volumes
-try { db.exec("ALTER TABLE tasks ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
-try { db.exec("ALTER TABLE tasks ADD COLUMN source_reference TEXT"); } catch (e) { }
-try { db.exec("ALTER TABLE notes ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
-try { db.exec("ALTER TABLE grouped_trips ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
-
-db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_tasks_status_context ON tasks(status, context_mode);
-  CREATE INDEX IF NOT EXISTS idx_pomodoros_date ON pomodoros(completed_at);
-  CREATE INDEX IF NOT EXISTS idx_rituals_lastResetDate ON rituals(lastResetDate);
-`);
-
-// --- Initialization: Cache ---
-// TTL is 300 seconds (5 minutes)
-const apiCache = new NodeCache({ stdTTL: 300 });
-
-// --- One-Time Flat File to SQLite Migration ---
-const TASKS_PATH = path.join(__dirname, 'tasks.json');
-const RITUALS_PATH = path.join(__dirname, 'rituals.json');
-const NOTES_PATH = path.join(__dirname, 'notes.json');
-
-if (fs.existsSync(TASKS_PATH)) {
+// Seed default rituals if table is empty
+(async () => {
     try {
-        const tasks = JSON.parse(fs.readFileSync(TASKS_PATH, 'utf8'));
-        const insert = db.prepare('INSERT OR IGNORE INTO tasks (id, title, status) VALUES (@id, @title, @status)');
-        const insertMany = db.transaction((txs) => {
-            for (const t of txs) insert.run(t);
-        });
-        insertMany(tasks);
-        fs.unlinkSync(TASKS_PATH);
-        console.log("✅ Migrated tasks.json to SQLite and deleted file.");
-    } catch (err) { console.error("Tasks migration failed:", err); }
-}
-
-if (fs.existsSync(RITUALS_PATH)) {
-    try {
-        const rituals = JSON.parse(fs.readFileSync(RITUALS_PATH, 'utf8'));
-        const insert = db.prepare('INSERT OR IGNORE INTO rituals (id, title, completed, lastResetDate) VALUES (@id, @title, @completed, @lastResetDate)');
-        const insertMany = db.transaction((rits) => {
-            for (const r of rits) insert.run({ ...r, completed: r.completed ? 1 : 0 });
-        });
-        insertMany(rituals);
-        fs.unlinkSync(RITUALS_PATH);
-        console.log("✅ Migrated rituals.json to SQLite and deleted file.");
-    } catch (err) { console.error("Rituals migration failed:", err); }
-} else {
-    // Seed default rituals if table is empty
-    const count = db.prepare("SELECT COUNT(*) as count FROM rituals").get().count;
-    if (count === 0) {
-        const today = new Date().toDateString();
-        const stmt = db.prepare("INSERT INTO rituals (id, title, completed, lastResetDate) VALUES (?, ?, ?, ?)");
-        db.transaction(() => {
-            stmt.run("r1", "Drink a large glass of water", 0, today);
-            stmt.run("r2", "10 minute stretching session", 0, today);
-            stmt.run("r3", "Review Zenith Priority goals", 0, today);
-        })();
+        const count = await prisma.ritual.count();
+        if (count === 0) {
+            const today = new Date().toDateString();
+            await prisma.ritual.createMany({
+                data: [
+                    { id: "r1", title: "Drink a large glass of water", completed: 0, lastResetDate: today },
+                    { id: "r2", title: "10 minute stretching session", completed: 0, lastResetDate: today },
+                    { id: "r3", title: "Review Zenith Priority goals", completed: 0, lastResetDate: today }
+                ]
+            });
+        }
+    } catch (e) {
+        console.error("Failed to seed default rituals:", e);
     }
-}
-
-if (fs.existsSync(NOTES_PATH)) {
-    try {
-        const notes = JSON.parse(fs.readFileSync(NOTES_PATH, 'utf8'));
-        db.prepare('INSERT OR REPLACE INTO notes (id, content) VALUES (1, ?)').run(notes.content || "");
-        fs.unlinkSync(NOTES_PATH);
-        console.log("✅ Migrated notes.json to SQLite and deleted file.");
-    } catch (err) { console.error("Notes migration failed:", err); }
-}
+})();
 
 function getGoogleApiConfig() {
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -245,116 +159,120 @@ app.get('/oauth2callback', async (req, res) => {
     }
 });
 
-// --- Tasks Endpoints (SQLite) ---
-app.get('/api/tasks', (req, res) => {
+// --- Tasks Endpoints (SQLite/Prisma) ---
+app.get('/api/tasks', async (req, res) => {
     const context = req.query.context || 'both';
-    let tasks;
-    if (context === 'both') {
-        tasks = db.prepare('SELECT * FROM tasks').all();
-    } else {
-        tasks = db.prepare('SELECT * FROM tasks WHERE context_mode IN (?, "both")').all(context);
-    }
-    res.json(tasks);
+    try {
+        const tasks = context === 'both'
+            ? await prisma.task.findMany()
+            : await prisma.task.findMany({ where: { contextMode: { in: [context, 'both'] } } });
+        res.json(tasks.map(t => ({ ...t, context_mode: t.contextMode, source_reference: t.sourceReference })));
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/tasks', (req, res) => {
+app.post('/api/tasks', async (req, res) => {
     const tasks = req.body;
     const context = req.query.context || 'both';
-    const insert = db.prepare('INSERT INTO tasks (id, title, status, context_mode) VALUES (@id, @title, @status, @context_mode)');
 
-    // Batch replace strategy to match frontend Kanban arrays
-    const transaction = db.transaction((txs) => {
-        if (context === 'both') {
-            db.prepare('DELETE FROM tasks').run();
-        } else {
-            db.prepare('DELETE FROM tasks WHERE context_mode = ?').run(context);
-        }
-        for (const t of txs) {
-            insert.run({
-                id: t.id,
-                title: t.title,
-                status: t.status,
-                context_mode: t.context_mode || context
-            });
-        }
-    });
-
-    transaction(tasks);
-    res.json({ success: true });
+    try {
+        await prisma.$transaction(async (tx) => {
+            if (context === 'both') {
+                await tx.task.deleteMany();
+            } else {
+                await tx.task.deleteMany({ where: { contextMode: context } });
+            }
+            if (tasks.length > 0) {
+                await tx.task.createMany({
+                    data: tasks.map(t => ({
+                        id: t.id,
+                        title: t.title,
+                        status: t.status,
+                        contextMode: t.context_mode || context,
+                        sourceReference: t.source_reference
+                    }))
+                });
+            }
+        });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- Quick Notes Endpoints (SQLite) ---
-app.get('/api/notes', (req, res) => {
+// --- Quick Notes Endpoints (SQLite/Prisma) ---
+app.get('/api/notes', async (req, res) => {
     const context = req.query.context || 'both';
-    let note = db.prepare('SELECT content FROM notes WHERE context_mode = ?').get(context);
-    if (!note) {
-        db.prepare("INSERT INTO notes (content, context_mode) VALUES ('', ?)").run(context);
-        note = { content: "" };
-    }
-    res.json(note);
+    try {
+        let note = await prisma.note.findFirst({ where: { contextMode: context } });
+        if (!note) {
+            note = await prisma.note.create({ data: { content: "", contextMode: context } });
+        }
+        res.json(note);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', async (req, res) => {
     const { content } = req.body;
     const context = req.query.context || 'both';
-
-    let note = db.prepare('SELECT id FROM notes WHERE context_mode = ?').get(context);
-    if (note) {
-        db.prepare('UPDATE notes SET content = ? WHERE id = ?').run(content || "", note.id);
-    } else {
-        db.prepare('INSERT INTO notes (content, context_mode) VALUES (?, ?)').run(content || "", context);
-    }
-    res.json({ success: true });
+    try {
+        const note = await prisma.note.findFirst({ where: { contextMode: context } });
+        if (note) {
+            await prisma.note.update({ where: { id: note.id }, data: { content: content || "" } });
+        } else {
+            await prisma.note.create({ data: { content: content || "", contextMode: context } });
+        }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- Daily Rituals Endpoints (SQLite) ---
-app.get('/api/rituals', (req, res) => {
+// --- Daily Rituals Endpoints (SQLite/Prisma) ---
+app.get('/api/rituals', async (req, res) => {
     const today = new Date().toDateString();
     const context = req.query.context || 'both';
 
     try {
-        db.prepare('ALTER TABLE rituals ADD COLUMN context_mode TEXT DEFAULT "both"').run();
-    } catch (e) { /* Column already exists */ }
+        let rituals = context === 'both'
+            ? await prisma.ritual.findMany()
+            : await prisma.ritual.findMany({ where: { contextMode: { in: [context, 'both'] } } });
 
-    let rituals;
-    if (context === 'both') {
-        rituals = db.prepare('SELECT * FROM rituals').all();
-    } else {
-        rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
-    }
-
-    if (rituals.length > 0 && rituals[0].lastResetDate !== today) {
-        db.prepare('UPDATE rituals SET completed = 0, lastResetDate = ?').run(today);
-        if (context === 'both') {
-            rituals = db.prepare('SELECT * FROM rituals').all(); // Fetch updated
-        } else {
-            rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
+        if (rituals.length > 0 && rituals[0].lastResetDate !== today) {
+            await prisma.ritual.updateMany({ data: { completed: 0, lastResetDate: today } });
+            rituals = context === 'both'
+                ? await prisma.ritual.findMany()
+                : await prisma.ritual.findMany({ where: { contextMode: { in: [context, 'both'] } } });
         }
-    }
 
-    res.json(rituals.map(r => ({ ...r, completed: r.completed === 1 })));
+        res.json(rituals.map(r => ({ ...r, completed: r.completed === 1, context_mode: r.contextMode })));
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/rituals/:id', (req, res) => {
+app.put('/api/rituals/:id', async (req, res) => {
     const { id } = req.params;
     const { completed } = req.body;
-    db.prepare('UPDATE rituals SET completed = ? WHERE id = ?').run(completed ? 1 : 0, id);
-    res.json({ success: true });
+    try {
+        await prisma.ritual.update({ where: { id }, data: { completed: completed ? 1 : 0 } });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/rituals', express.json(), (req, res) => {
+app.post('/api/rituals', express.json(), async (req, res) => {
     const { title, context_mode = 'both' } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
     const id = Date.now().toString();
     const today = new Date().toDateString();
-    db.prepare('INSERT INTO rituals (id, title, completed, lastResetDate, context_mode) VALUES (?, ?, 0, ?, ?)').run(id, title, today, context_mode);
-    res.json({ id, title, completed: false, lastResetDate: today, context_mode });
+
+    try {
+        await prisma.ritual.create({
+            data: { id, title, completed: 0, lastResetDate: today, contextMode: context_mode }
+        });
+        res.json({ id, title, completed: false, lastResetDate: today, context_mode });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/rituals/:id', (req, res) => {
+app.delete('/api/rituals/:id', async (req, res) => {
     const { id } = req.params;
-    db.prepare('DELETE FROM rituals WHERE id = ?').run(id);
-    res.json({ success: true });
+    try {
+        await prisma.ritual.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // --- Calendar Endpoint (Cached) ---
@@ -481,16 +399,36 @@ app.get('/api/inbox', async (req, res) => {
 const activeSyncs = new Set();
 
 // --- Background Sync for Trips ---
-const saveGroupedTripsToDb = (context, dataArray) => {
+const saveGroupedTripsToDb = async (context, dataArray) => {
     const now = new Date().toISOString();
-    const existing = db.prepare('SELECT id FROM grouped_trips WHERE context_mode = ?').get(context);
-    if (existing) {
-        db.prepare('UPDATE grouped_trips SET trip_data = ?, last_updated = ? WHERE id = ?')
-            .run(JSON.stringify(dataArray), now, existing.id);
-    } else {
-        db.prepare('INSERT INTO grouped_trips (context_mode, trip_data, last_updated) VALUES (?, ?, ?)')
-            .run(context, JSON.stringify(dataArray), now);
-    }
+
+    await prisma.$transaction(async (tx) => {
+        await tx.trip.deleteMany({ where: { contextMode: context } });
+
+        for (const t of dataArray) {
+            await tx.trip.create({
+                data: {
+                    contextMode: context,
+                    tripName: t.Trip || t.TripName || "Unknown Trip",
+                    startDate: t.StartDate || "",
+                    endDate: t.EndDate || null,
+                    lastUpdated: now,
+                    components: {
+                        create: (t.Components || []).map(c => ({
+                            type: c.Type || "Unknown",
+                            name: c.Name || "Unknown",
+                            date: c.Date || null,
+                            time: c.Time || null,
+                            airline: c.Airline || null,
+                            flightNumber: c.FlightNumber || null,
+                            confirmation: c.Confirmation || null,
+                            address: c.Address || null,
+                        }))
+                    }
+                }
+            });
+        }
+    });
 };
 
 const syncTripsForContext = async (context) => {
@@ -619,9 +557,9 @@ Schema to follow EXACTLY:
     "Components": [
       {
         "Type": "Flight | Hotel | Train | Other",
-        "Title": "Short description (e.g. BA285 to SFO)",
+        "Name": "Short description (e.g. BA285 to SFO)",
         "DateTime": "MMM D, HH:mm",
-        "ConfirmationCode": "Found code or N/A" 
+        "ConfirmationCode": "Found code or N/A"
       }
     ]
   }
@@ -637,7 +575,10 @@ ${JSON.stringify(combinedData)}
         });
 
         const responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const parsedTrips = JSON.parse(responseText);
+        const rawParsedTrips = JSON.parse(responseText);
+
+        // --- Phase 1: Zod Schema Validation ---
+        const parsedTrips = TripsResponseSchema.parse(rawParsedTrips);
 
         // --- Hotfix 4.9.2: JS-Level 14-Day Deduplication ---
         let groupedTrips = [];
@@ -664,7 +605,10 @@ ${JSON.stringify(combinedData)}
                     if (new Date(current.EndDate || current.StartDate) > lastEnd) {
                         last.EndDate = current.EndDate || current.StartDate;
                     }
-                    last.Components = [...(last.Components || []), ...(current.Components || [])];
+                    // Important: Check for duplicate components before merging
+                    const existingTitles = new Set((last.Components || []).map(c => c.Name));
+                    const uniqueNewComps = (current.Components || []).filter(c => !existingTitles.has(c.Name));
+                    last.Components = [...(last.Components || []), ...uniqueNewComps];
                 } else {
                     groupedTrips.push(current);
                 }
@@ -884,7 +828,7 @@ app.post('/api/trips/sync', async (req, res) => {
         res.json({ success: true, message: 'Full sync started sequentially' });
 
         // Since we are forcing a full refresh, let's explicitly wipe the db first manually
-        db.prepare("DELETE FROM grouped_trips WHERE context_mode IN ('personal', 'professional')").run();
+        await prisma.trip.deleteMany({ where: { contextMode: { in: ['personal', 'professional'] } } });
 
         await syncTripsForContext('professional');
         await syncTripsForContext('personal');
@@ -894,32 +838,56 @@ app.post('/api/trips/sync', async (req, res) => {
     res.json({ success: true, message: `Sync started for context: ${context}` });
 
     // Wipe just this context to ensure fresh data
-    db.prepare("DELETE FROM grouped_trips WHERE context_mode = ?").run(context);
+    await prisma.trip.deleteMany({ where: { contextMode: context } });
     await syncTripsForContext(context);
 });
 
 
-// --- Trips Endpoint (Zero-Latency SQLite Read) ---
-app.get('/api/trips', (req, res) => {
+// --- Trips Helper ---
+const getTripsByContext = async (context) => {
+    const trips = await prisma.trip.findMany({
+        where: { contextMode: context },
+        include: { components: true }
+    });
+
+    return trips.map(t => ({
+        TripName: t.tripName,
+        StartDate: t.startDate,
+        EndDate: t.endDate,
+        Components: t.components.map(c => ({
+            Type: c.type,
+            Name: c.name,
+            Date: c.date,
+            Time: c.time,
+            Airline: c.airline,
+            FlightNumber: c.flightNumber,
+            Confirmation: c.confirmation,
+            Address: c.address
+        }))
+    }));
+};
+
+// --- Trips Endpoint (Zero-Latency Prisma Read) ---
+app.get('/api/trips', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const context = req.query.context || 'both';
     try {
         if (context === 'both') {
-            const rowProf = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get('professional');
-            const rowPers = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get('personal');
+            const profTrips = await getTripsByContext('professional');
+            const persTrips = await getTripsByContext('personal');
 
             let combined = [];
             let needsSync = false;
 
-            if (rowProf && rowProf.trip_data) {
-                combined.push(...JSON.parse(rowProf.trip_data));
+            if (profTrips.length > 0) {
+                combined.push(...profTrips);
             } else {
                 syncTripsForContext('professional');
                 needsSync = true;
             }
 
-            if (rowPers && rowPers.trip_data) {
-                combined.push(...JSON.parse(rowPers.trip_data));
+            if (persTrips.length > 0) {
+                combined.push(...persTrips);
             } else {
                 syncTripsForContext('personal');
                 needsSync = true;
@@ -953,8 +921,8 @@ app.get('/api/trips', (req, res) => {
                             last.EndDate = current.EndDate || current.StartDate;
                         }
                         // Important: Check for duplicate components before merging
-                        const existingTitles = new Set((last.Components || []).map(c => c.Title));
-                        const uniqueNewComps = (current.Components || []).filter(c => !existingTitles.has(c.Title));
+                        const existingTitles = new Set((last.Components || []).map(c => c.Name));
+                        const uniqueNewComps = (current.Components || []).filter(c => !existingTitles.has(c.Name));
                         last.Components = [...(last.Components || []), ...uniqueNewComps];
                     } else {
                         finalTrips.push(current);
@@ -962,11 +930,12 @@ app.get('/api/trips', (req, res) => {
                 }
                 combined = finalTrips;
             }
+
             res.json(combined);
         } else {
-            const row = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get(context);
-            if (row && row.trip_data) {
-                res.json(JSON.parse(row.trip_data));
+            const trips = await getTripsByContext(context);
+            if (trips.length > 0) {
+                res.json(trips);
             } else {
                 syncTripsForContext(context);
                 res.json([]);
@@ -1021,36 +990,40 @@ Respond with ONLY a valid JSON object in the exact following format, with no mar
 });
 
 // --- Pomodoro Endpoints ---
-app.post('/api/pomodoros', express.json(), (req, res) => {
+app.post('/api/pomodoros', express.json(), async (req, res) => {
     try {
         const { duration_minutes, task_id_optional } = req.body;
-        const insertPomodoro = db.prepare('INSERT INTO pomodoros (duration_minutes, completed_at, task_id_optional) VALUES (?, ?, ?)');
-        const result = insertPomodoro.run(duration_minutes, new Date().toISOString(), task_id_optional || null);
-        res.status(201).json({ id: result.lastInsertRowid, message: 'Pomodoro logged successfully' });
+        const result = await prisma.pomodoro.create({
+            data: {
+                durationMinutes: duration_minutes,
+                completedAt: new Date().toISOString(),
+                taskIdOptional: task_id_optional || null
+            }
+        });
+        res.status(201).json({ id: result.id, message: 'Pomodoro logged successfully' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to log Pomodoro' });
     }
 });
 
-app.get('/api/pomodoros/stats', (req, res) => {
+app.get('/api/pomodoros/stats', async (req, res) => {
     try {
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
 
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(today.getDate() - 6);
+        const isoSevenAuth = sevenDaysAgo.toISOString();
 
-        const getStats = db.prepare(`
+        const rawStats = await prisma.$queryRaw`
             SELECT 
-                date(completed_at) as date,
-                SUM(duration_minutes) as minutes
-            FROM pomodoros
-            WHERE date(completed_at) >= date(?)
-            GROUP BY date(completed_at)
-            ORDER BY date(completed_at) ASC
-        `);
-
-        const rawStats = getStats.all(sevenDaysAgo.toISOString());
+                date(completedAt) as date,
+                SUM(durationMinutes) as minutes
+            FROM Pomodoro
+            WHERE date(completedAt) >= date(${isoSevenAuth})
+            GROUP BY date(completedAt)
+            ORDER BY date(completedAt) ASC
+        `;
 
         // Build 7-day array
         const heatmap = [];
@@ -1062,7 +1035,7 @@ app.get('/api/pomodoros/stats', (req, res) => {
             const existing = rawStats.find(r => r.date.startsWith(dateStr));
             heatmap.push({
                 date: dateStr,
-                minutes: existing ? existing.minutes : 0
+                minutes: existing ? Number(existing.minutes) : 0
             });
         }
 

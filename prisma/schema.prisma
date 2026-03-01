@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id              String  @id
+  title           String
+  status          String
+  contextMode     String  @default("both")
+  sourceReference String?
+
+  @@index([status, contextMode])
+}
+
+model Ritual {
+  id            String  @id
+  title         String
+  completed     Int     @default(0)
+  lastResetDate String?
+  contextMode   String  @default("both")
+
+  @@index([lastResetDate])
+}
+
+model Note {
+  id          Int     @id @default(autoincrement())
+  content     String?
+  contextMode String  @default("both")
+}
+
+model Pomodoro {
+  id              Int     @id @default(autoincrement())
+  durationMinutes Int?
+  completedAt     String?
+  taskIdOptional  String?
+
+  @@index([completedAt])
+}
+
+model Trip {
+  id          Int             @id @default(autoincrement())
+  contextMode String          @default("both")
+  tripName    String
+  startDate   String
+  endDate     String?
+  lastUpdated String
+  components  TripComponent[]
+}
+
+model TripComponent {
+  id           Int     @id @default(autoincrement())
+  tripId       Int
+  trip         Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  type         String
+  name         String
+  date         String?
+  time         String?
+  airline      String?
+  flightNumber String?
+  confirmation String?
+  address      String?
+}
