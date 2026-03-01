@@ -1,71 +1,86 @@
-# Sabrina's Control Centre (v17.0) 🚀
+# Sabrina's Control Centre v2.0
 
-A private, "Apple-Dark-Mode" inspired life-optimization dashboard designed for deep focus and intentionality.
+A private, Apple-Dark-Mode life-optimization dashboard with contextual Personal/Professional switching, real-time WebSocket updates, and Gemini AI trip extraction.
 
-This project evolved from a static links dashboard into a living, private intelligence hub that securely interacts with your Google Calendar, scans for upcoming travel, and provides real-time environmental context—all directly from your local machine, keeping you out of the corporate grid.
+## Stack
 
-## Comprehensive Feature Set
-We built this application from the ground up to replace heavy SaaS productivity tools. Here is everything currently implemented:
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite 7, Tailwind CSS v4 |
+| Backend | Node.js 20, Express v5 |
+| Database | SQLite via Prisma ORM |
+| Validation | Zod (all Gemini outputs validated before save) |
+| Real-Time | WebSockets (`ws`) + Google Cloud Pub/Sub Webhooks |
+| AI | Gemini 2.5 Flash (`@google/genai`) |
+| Testing | Jest + Supertest (22 integration tests) |
+| Auth | Password-based Bearer token gate |
 
-### 1. The Zenith Focus Mode (UI/UX)
-- **Deep Work Toggle**: Press `<kbd>Enter Zen Mode</kbd>` (or hit `<kbd>F</kbd>`) to fade the entire dashboard into black.
-- **Micro-Interactions**: Features a heavy `backdrop-filter: blur(15px)` glassmorphism, completely obscuring the dashboard and centering *only* your current active task alongside a live Pomodoro countdown.
-- **macOS Midnight Aesthetic**: Custom UI explicitly defined with `#0A0A0B` backgrounds, `rgba(255, 255, 255, 0.05)` translucent cards, and Apple's `SF Pro` system typography.
+## Architecture
 
-### 2. Heads-Up Display (The HUD)
-- **Live Clock**: Vanilla JS `setInterval` engine that ticks every second natively without React overhead.
-- **Environmental Context**: Automatically fetches real-time London temperatures via the **Open-Meteo API**.
-- **Emoji Mapping**: Intelligently converts WMO weather codes into native Unicode emojis (e.g., ☁️, ☀️, 🌧️) directly in the navigation bar.
+```
+client/                    React 19 + Vite 7 frontend
+  src/components/          UpcomingTrips, Calendar, KanbanBoard, DailyRituals, ...
+  src/contexts/            WebSocketContext (real-time push)
+  src/utils/api.js         Centralized fetch with auth headers
+server.js                  Express v5 monolith (REST + WebSocket + cron)
+prisma/schema.prisma       Source of truth: Trip, TripComponent, Task, Ritual, Note, Pomodoro
+schemas/zodSchemas.js      Zod validation for all LLM payloads
+utils/                     deduplicateTrips() and helpers
+tests/                     api.test.js (18 endpoint tests), deduplication.test.js (4 tests)
+```
 
-### 3. Google API Integrations (Local & Private)
-The backend (`server.js`) uses the official `googleapis` SDK, authenticating strictly via your local `credentials.json` and `token.json`. No databases, no external servers. 
-- **The Intelligent Inbox (`/api/inbox`)**: Connects to the Gmail API (`q: 'in:inbox is:unread'`) to pull down your primary actionable emails for rapid Kanban triage.
-- **The 30-Day Calendar (`/api/calendar`)**: Syncs with Google Calendar API to render a strict 30-day rolling timeline of your upcoming commitments.
+## Setup
 
-### 4. Advanced Travel & Trip Engine (`/api/trips`)
-- **Automated Scanning**: The Node server queries *all* of your connected Google Calendars for travel-related keywords (`Flight`, `Hotel`, `Train`, `TripIt`).
-- **Regex Cleaning**: Cleans messy subject lines (e.g., stripping out "TripIt Pro alert:") to render clean destinations.
-- **Chronological Sorting**: Algorithms sort the multi-calendar payloads chronologically so the most imminent trip always sits at the top of Column 2.
+```bash
+# 1. Install dependencies (root + client)
+npm install
+cd client && npm install && cd ..
 
-### 5. Gemini AI Auto-Scheduler (`/api/ai/schedule`)
-- **Agentic Scheduling**: Hover over a Kanban task and hit `<kbd>X</kbd>`. The Express backend sends the task metadata alongside your *entire* 30-day Google Calendar payload to **Google's `gemini-2.5-pro`** model.
-- **Smart Placement**: Gemini acts natively as an Executive Assistant, finding the optimal 30-to-60-minute gap in your schedule to execute the task, and returns the assigned Date/Time with its logical reasoning.
+# 2. Configure environment
+cp .env.example .env   # then fill in the values below
 
-### 6. Local Kanban Engine
-- **Zero Latency**: A fully functional Drag-and-Drop (`dragstart`, `dragover`, `drop`) KanBan board.
-- **Persistence**: State is saved instantly to a local `tasks.json` file on your Macbook via `POST /api/tasks`.
+# 3. Generate Prisma client
+npx prisma generate
 
----
+# 4. Run (backend on :3000, frontend on :5173)
+npm run dev
+```
 
-## Setup & Installation
+### Required Environment Variables
 
-To run Sabrina's Control Centre locally:
+| Variable | Purpose |
+|----------|---------|
+| `AUTH_PASSWORD` | Password for the login gate and Bearer token auth on all `/api/*` routes |
+| `GEMINI_API_KEY` | Gemini 2.5 Flash for trip/inbox extraction |
+| `DATABASE_URL` | `"file:./database.db"` for local, `"file:/data/database.db"` on Railway |
+| `GOOGLE_CREDENTIALS_JSON` | OAuth2 credentials block for Google Calendar + Gmail |
 
-1. **Install Node.js** (v18+ recommended).
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+## Context Engine
 
-3. **Add Google Cloud Credentials**:
-   - Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
-   - Enable the **Google Calendar API** and **Gmail API**.
-   - Create an OAuth 2.0 Client ID (Desktop Application) and download the JSON file.
-   - Rename the file to `credentials.json` and place it directly into the root folder of this repository. *(Note: This file is ignored by git).*
+Every component fetches data scoped to the active context:
 
-4. **Add Gemini Capabilities (Optional)**:
-   - Create a `.env` file in the root directory.
-   - Add your API key: `GEMINI_API_KEY=your_key_here`.
+```
+GET /api/tasks?context=professional
+```
 
-5. **Boot the Engine**:
-   ```bash
-   node server.js
-   ```
+The backend filters via Prisma: `where: { contextMode: { in: [context, 'both'] } }`. Toggle between Personal and Professional from the header.
 
-6. **Launch & Authorize**:
-   - Open a browser and navigate to `http://localhost:3000`.
-   - On the very first launch, you will be prompted to click **Authorize with Google**. Follow the terminal/browser prompts to generate your local `token.json` file.
-   - Enjoy the focused Control Centre.
+## Auth
 
----
-*Built with ❤️ via Agentic AI.*
+All `/api/*` routes (except `POST /api/auth/login`) require `Authorization: Bearer <password>`. The React frontend renders a `LoginGate` that blocks the dashboard until the correct password is entered.
+
+## Testing
+
+```bash
+npm test
+```
+
+Runs 22 tests across 2 suites: API integration tests (auth, tasks, notes, rituals, pomodoros) and trip deduplication unit tests.
+
+## Deployment
+
+Designed for Railway with a persistent volume at `/data`. See the [Handover](./Handover) document for the full GCP Webhook setup playbook, database backup/restore procedures, and developer FAQ.
+
+## License
+
+Private.
