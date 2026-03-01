@@ -582,7 +582,7 @@ Your job is to:
 2. Group all related flights, hotels, and train bookings under their respective parent Trips.
 3. AGGRESSIVELY DEDUPLICATE: If a flight appears in both the calendar and the inbox, merge it into a SINGLE component.
 4. Format the output strictly as the following JSON schema. No extra markdown, no code blocks, just raw JSON.
-5. NUCLEAR OVERLAP RULE: You are FORBIDDEN from outputting multiple trips that are consecutive or occur within 2 days of each other. If there are flights to SF and flights to LA back-to-back, you MUST merge them into a single parent trip called "San Francisco & Los Angeles" with the earliest StartDate and latest EndDate. Do NOT merge completely separate business trips that are weeks apart. Outputting overlapping trips will result in a critical system failure.
+5. ZERO MERGING RULE: You MUST output each distinct primary city/location as its own separate Trip object. NEVER combine multiple distinct cities (e.g., "San Francisco" and "Los Angeles" or "Helsinki" and "London") into a single Trip, even if they occur consecutively. We handle multi-city trip merging independently. A single trip in your JSON must represent ONE cohesive destination.
 
 Schema to follow EXACTLY:
 [
