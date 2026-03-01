@@ -494,11 +494,11 @@ const syncTripsForContext = async (context) => {
         // 1. Fetch Gmail Data
         let emailData = [];
         try {
-            const query = 'in:inbox (subject:flight OR subject:hotel OR subject:reservation OR subject:booking OR subject:train OR subject:itinerary) newer_than:30d';
+            const query = 'in:inbox (subject:flight OR subject:hotel OR subject:reservation OR subject:booking OR subject:train OR subject:itinerary) newer_than:180d';
             const response = await gmail.users.messages.list({
                 userId: 'me',
                 q: query,
-                maxResults: 15
+                maxResults: 50
             });
             if (response.data.messages) {
                 const msgs = await Promise.all(response.data.messages.map(async (m) => {
