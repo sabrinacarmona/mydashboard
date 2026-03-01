@@ -1,0 +1,173 @@
+# SabrinaOS Real Data Integrations (Phase 11)
+
+To transform SabrinaOS into a true productivity powerhouse, we are moving away from mock React state entirely. This phase implements genuine API connections to the tools users rely on for the Unified Inbox context.
+
+## User Review Required
+> [!WARNING]
+> This phase requires connecting real application credentials to Google Cloud (for Calendar) and GitHub OAuth apps. Because I (the agent) do not have your actual Google Cloud API credentials or GitHub App client secrets, I will implement **fully formed, production-ready OAuth API routes** and SWR data-fetching layers in the Next.js app, but they will rely on environment variables (`.env.local`). We will use resilient error handling so the frontend continues to look stunning even if `GITHUB_CLIENT_ID` is missing.
+
+## Proposed Changes
+
+### 1. Authentication Layer (NextAuth)
+- **Dependency**: Install `next-auth` (v4/v5 depending on Next config).
+- **Implementation**: Create `src/app/api/auth/[...nextauth]/route.ts`. 
+- **Providers**: Configure `GoogleProvider` (requesting specific `https://www.googleapis.com/auth/calendar.readonly` scopes) and `GithubProvider` (requesting `repo` scopes).
+- **Session API**: Expose standard `useSession` hooks to the dashboard.
+
+### 2. Live Synchronization APIs (`routes/sync.ts` equivalent)
+We will build robust, authentic Next.js backend routes that the UI can hit to fetch real payload data.
+#### [NEW] [src/app/api/calendar/route.ts](file:///Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/apps/web/src/app/api/calendar/route.ts)
+- Verifies NextAuth session token.
+- Uses the Google Calendar REST API (`https://www.googleapis.com/calendar/v3/calendars/primary/events`) to fetch the logged-in user's events for the current day.
+#### [NEW] [src/app/api/github/route.ts](file:///Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/apps/web/src/app/api/github/route.ts)
+- Verifies NextAuth session token.
+- Uses standard Octokit queries (or direct REST calls) to `GET /issues` assigned to the authenticated user.
+
+### 3. Bi-directional Sync Capabilities
+- **Status Toggles**: We will implement `PUT /api/github` routes so that checking off a task in SabrinaOS attempts to patch the issue status natively in GitHub, satisfying the "bi-directional" sync requirement.
+
+### 4. Layout & UI Overhauls (`page.tsx`)
+- **Grid Stability**: We will retain the pure CSS Grid but ensure text does not natively wrap or squeeze under extreme data loads.
+- **Sidebar**: Adjust to `bg-white/5` to satisfy the explicit transparent sidebar command.
+- **Card Precision**: Enforce that every valid loaded card uses `.glass-card`, with `padding: 16px`, `margin-bottom: 12px`, and explicitly `border: 1px solid rgba(255,255,255,0.1)`.
+- **Branding**: The logo will be adjusted to use `tracking-tight font-bold` and be strictly bound to the very top-left layout.
+
+## Verification Plan
+1. Install NextAuth and define explicit OAuth scopes in code.
+2. Provide the `useSession` wrapper across the application.
+3. Update `page.tsx` with SWR / `useEffect` fetchers hitting the new `/api` endpoints so the columns populate via HTTP requests rather than purely local state.
+4. Verify the exact CSS metrics requested (sidebar transparency, specific card padding, and branding alignment).
+
+# SabrinaOS Emergency UI & Data Overhaul (Phase 12)
+
+The dashboard requires an immediate transition to strictly functional data and proper CSS isolation. We will remove all fallback "mock" data and rely solely on SWR data fetching, while completely fixing the overlapping grid CSS and building a new 24-hour vertical timeline.
+
+## User Review Required
+> [!IMPORTANT]
+> I have audited the codebase. **You do not currently have `GOOGLE_CLIENT_ID` or `GITHUB_CLIENT_ID` configured in `.env` or `.env.local`**. The system is completely lacking the required OAuth keys. As requested, instead of showing a broken or "dummy" dashboard, I will build an explicit, beautiful "Setup & Integration" screen for when keys are missing. Do you approve this approach?
+
+## Proposed Changes
+
+### 1. Data Layer Hard-Reset
+- **Wipe Dummy Data**: All hardcoded array tasks (`Pack for Helsinki`, etc.) will be eliminated. 
+- **Setup State**: If SWR detects missing API integration, `page.tsx` will yield to a new Apple-inspired "Setup & Integration" empty-state screen guiding the user to configure `.env.local`.
+
+### 2. Emergency Layout Fixes
+- **Strict CSS Grid**: Enforce `grid-template-columns: repeat(3, minmax(0, 1fr))` with absolutely `0` overlapping allowed. 
+- **Sidebar Polish**: Remove all boxy background colors. Apply `24px` padding to items and use thin monochromatic icons with stroke width 1.5.
+- **Typography**: Convert "TODAY'S FOCUS" to "Today's focus" (Sentence case). Force `SF Pro`, `Inter` universally.
+
+### 3. The 24-Hour Vertical Calendar
+- Refactor the right-most "Schedule" column from generic cards into a true 24-hour vertical timeline visualization. 
+- Map SWR Google Calendar events onto fixed vertical time slots for accurate spatial representation of the day.
+
+## Verification Plan
+1. Validate F (Focus Mode) and X (Auto-Schedule) work flawlessly against actual fetched SWR payloads rather than hardcoded mock data.
+2. Confirm the 24-hour vertical timeline renders appropriately within the strictly 0-overlap CSS Grid.
+
+# Phase 13: Back to Basics (Real Calendar & Emails)
+
+Due to OAuth limitations with NextAuth and missing environment variables, the system blocked the user with an empty state. We will pivot back to the original `PersonalOS` approach: utilizing the local `token.json` and `credentials.json` via the `googleapis` SDK directly in Next.js API routes.
+
+## Proposed Changes
+
+### 1. API Route Re-Implementation
+- Install `googleapis` in `apps/web`.
+- Create/Modify `src/app/api/calendar/route.ts` to fetch a 3-day window of Google Calendar events using `token.json` from the project root.
+- Create `src/app/api/inbox/route.ts` to fetch Primary Unread Gmail messages.
+
+### 2. UI Restoration (`page.tsx`)
+- Rip out the `NextAuth` strict blocking UI (the "SabrinaOS Setup Required" screen).
+- Hook SWR to `/api/calendar` and `/api/inbox`.
+- Map the Gmail messages to the `Inbox` column and Google Calendar events to the `Schedule` column (mapping to the 24-hour timeline).
+
+## Phase 18: Upcoming Trips Engine (Legacy PersonalOS)
+- **Strategy:** Instead of implementing enterprise API keys for third-party travel planners, natively scan the user's authenticated Google mailbox for flight receipts.
+- **Query:** Add an endpoint `/api/trips` in `legacy/server.js` that performs a tight Gmail search query (e.g., `subject:flight OR subject:itinerary OR from:tripit`).
+- **Formatting:** Map the parsed email metadata into structured trip objects and stream them live to the "Upcoming Trips" component in `legacy/index.html`.
+
+## Phase 19: Merged Calendar Trips
+- **Strategy:** The user has synced TravelPerk directly to their Google Calendar. The `/api/trips` endpoint needs to be upgraded to pull from BOTH the Gmail API and the Google Calendar API simultaneously.
+- **Query:** Filter the calendar events using a keyword search (e.g., "Flight", "Train", "Hotel") or just pull all events and filter them in memory, then map them to the same `Trip` object standard used by the Gmail parser.
+
+## Phase 21: Deep AI Trip Parsing & Filtering
+- **Strategy:** The user complained that basic Regex parsing leaves the email trips looking unstructured and occasionally shows trips from the past if the email itself is recent. We have Gemini accessible in `server.js`.
+- **Implementation:** Modify `/api/trips` to pass the raw Gmail subjects and snippets to a single Gemini `generateContent` batch prompt. The prompt will instruct the AI to extract clean titles (e.g., `Flight BA 32: HKG to LHR`), exact action dates, and actively omit any trips where the travel date has already passed.
+
+## Phase 23: Dashboard Layout & Trip Sorting
+- **Strategy:** The user wants to drastically reorganize the 3-column masonry grid layout to improve their workflow and adjust how Trips are presented.
+- **Data Sorting**: Update `/api/trips` in `server.js` to sort by `a.timestamp - b.timestamp` so the most imminent upcoming trip displays at the very top.
+- **Trips UI**: Add a scrollwheel to the "Upcoming Trips" container in `index.html` by applying `max-h-[...]` and `overflow-y-auto`, ensuring only the top 3 cards are visible at a time.
+- **Layout Restructure**: Modify the main grid in `index.html`:
+  - **Left Column**: Move the "Actionable Inbox" here.
+  - **Middle Column**: Stack the "Tasks" Kanban panel directly on top of the "Schedule" panel.
+  - **Right Column**: Retain exactly as "Upcoming Trips".
+
+## Phase 25: Grid Reshuffle (Tasks + Trips)
+- **Strategy:** The user found that the horizontal alignment constraints broke visual symmetry. We will restructure the DOM again.
+- **Layout Changes**:
+  - **Column 1**: `Actionable Inbox` (Remains unchanged)
+  - **Column 2**: Stack `Tasks` on top, and `Upcoming Trips` on bottom.
+  - **Column 3**: Right-align `Schedule` and rename its header text to `Events`. Needs to fill the entire vertical height of Column 3.
+
+## Phase 26: Header Context Widget (Time, Date, Weather)
+- **Strategy:** Provide temporal and environmental context natively inside the top navigation bar, acting as a true "Control Centre" Heads-Up Display (HUD).
+- **Implementation**:
+  - **HTML/CSS**: Inject a new flex container in the center of the top navigation bar (`<header>`) to hold the Date, Time, and Weather metrics with glassmorphism `text-white/60` aesthetic string formatting.
+  - **Time/Date Engine**: Create specialized `setInterval` vanilla JavaScript logic in `index.html` to update the clock every second and format the date.
+  - **Weather API**: Utilize the free, no-CORS `open-meteo` API to fetch the current temperature and weathercode for the user's primary locale (defaulting to London, UK). Map WMO weathercodes to native emojis (☀️, 🌧️, ☁️).
+
+## Phase 27: GitHub Push & Clean Up
+- **Strategy:** The user wants to shut down and save the code to `https://github.com/sabrinacarmona/sabrina-control-centre`, ensuring unused files are deleted.
+- **Action Plan**:
+  - **1. Delete Dead Code**: Remove the `apps/` directory and any remnant files from the aborted Next.js/Postgres rewrite.
+  - **2. Promote Express App**: Move the contents of the `legacy/` folder (the active application) up into the root `MyDashboard` folder, and delete the empty `legacy/` directory.
+  - **3. Security**: Create a strict `.gitignore` to ensure `credentials.json`, `token.json`, and `node_modules` are ignored to prevent leaking Google API secrets to a public repository.
+  - **4. Git Push**: Initialize a git repository locally, commit all changes with a solid message, add the user's remote URL, and push to the `main` branch.
+
+## Phase 28: Daily Rituals & Habit Tracking
+- **Strategy:** The user selected option 1: A "Morning / Evening Routine" checklist that automatically resets at midnight to encourage daily habits before diving into deep work.
+- **Implementation**:
+  - **Data Structure**: Create a new local file `rituals.json` on the Express backend, tracking `{ id, title, completed, lastResetDate }`.
+  - **API Endpoints**: 
+    - `GET /api/rituals`: Returns the list, but crucially, if `lastResetDate !== today`, it bulk resets all `completed` booleans to `false` and updates the date before returning.
+    - `PUT /api/rituals/:id`: Toggles the completion state.
+  - **UI Integration**: Inject a sleek, compact "Daily Rituals" glassmorphism card into `index.html`. Given the layout, the top of **Column 1 (Actionable Inbox)** or **Column 2 (Tasks)** are the best candidates. We will place it at the top of Column 2, pushing the Kanban down slightly, as Rituals are usually performed *before* jumping into Tasks.
+
+## Phase 29: Ideation and Planning (Scratchpad)
+- **Problem**: The user frequently has random thoughts or transient focus items during the day that don't belong in a formal email or a structured Kanban task.
+- **Strategy**: Implement a minimalist **Scratchpad / Quick Notes** module into the dashboard.
+- **Implementation Ideas**:
+  - Add a lightweight `textarea` to the bottom of Column 1 (below the Inbox) or embedded inside Zenith Focus Mode.
+  - Native `localStorage` or `notes.json` persistence so the notes survive refreshes.
+  - Auto-save on `keyup` to provide a seamless "dump your brain here" user experience.
+
+## Phase 30: SQLite Data Migration (Tech Debt)
+- **Problem**: Concurrent JSON file writes via `fs.writeFileSync()` block the Node.js event loop and lead to high-probability file corruption.
+- **Strategy**: Migrate all local flat-file storage (`tasks.json`, `rituals.json`, `notes.json`) into a single SQLite database (`database.db`).
+- **Implementation**:
+  - Install `better-sqlite3` (a fast, synchronous SQLite3 wrapper for Node.js).
+  - Create table schemas for `tasks`, `rituals`, and `notes`.
+  - Write a one-time migration script (or initialization logic block) to parse existing JSON files and INSERT them into the database before deleting the `.json` files.
+  - Update all `/api/tasks`, `/api/rituals`, and `/api/notes` routes in `server.js` to execute SQL queries instead of `fs` reads/writes.
+
+## Phase 31: API Caching (Tech Debt)
+- **Problem**: The frontend UI polls Google APIs every 60 seconds. `server.js` passes these requests straight through, generating 1,440 API calls per day per active dashboard instance, risking rate limits.
+- **Strategy**: Implement server-side memory caching for Google Calendar and Gmail responses.
+- **Implementation**:
+  - Install `node-cache`.
+  - Cache `/api/inbox` and `/api/calendar` successful responses with a TTL of 300 seconds (5 minutes).
+  - Add a Cache-Hit header or logging to verify the mitigation works.
+
+## Phase 32: Pomodoro Timer & Analytics
+- **Problem**: The user currently has a basic Focus Mode but lacks structured time management (Pomodoro) and historical data on how much time they actually spend "in the zone".
+- **Strategy**: 
+  1. Build a functional 25/5 Pomodoro timer into the UI (likely integrated with the Focus Mode overlay).
+  2. Log completed Pomodoro sessions into the SQLite database to track daily/weekly focus analytics.
+- **Implementation**:
+  - **Database (`server.js`)**: Create a `pomodoros` SQL table `{ id, duration_minutes, completed_at, task_id_optional }`.
+  - **API (`server.js`)**: Add `POST /api/pomodoros` to log a completed session, and `GET /api/pomodoros/stats` to aggregate data (e.g., "Total focused hours this week").
+  - **Frontend UI (`index.html`)**:
+    - Add a sleek Timer widget (Start, Pause, Reset).
+    - When a 25-minute timer finishes, trigger an alert sound/notification, and automatically `POST` the session to the backend.
+    - Add a small "Focus Analytics" chart or stat-block into Column 3 (Events column) to display daily progress.

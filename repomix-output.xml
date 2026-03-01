@@ -1,0 +1,4236 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+MailCraft/
+  src/
+    api.ts
+    App.tsx
+    index.css
+    main.tsx
+    vite-env.d.ts
+  package.json
+  README.md
+.env.example
+.gitignore
+Implementation Plan
+index.html
+manifest.json
+package.json
+railway.json
+README.md
+server.js
+styles.css
+TECH_DIRECTOR_AUDIT.md
+template.env
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Implementation Plan">
+# SabrinaOS Real Data Integrations (Phase 11)
+
+To transform SabrinaOS into a true productivity powerhouse, we are moving away from mock React state entirely. This phase implements genuine API connections to the tools users rely on for the Unified Inbox context.
+
+## User Review Required
+> [!WARNING]
+> This phase requires connecting real application credentials to Google Cloud (for Calendar) and GitHub OAuth apps. Because I (the agent) do not have your actual Google Cloud API credentials or GitHub App client secrets, I will implement **fully formed, production-ready OAuth API routes** and SWR data-fetching layers in the Next.js app, but they will rely on environment variables (`.env.local`). We will use resilient error handling so the frontend continues to look stunning even if `GITHUB_CLIENT_ID` is missing.
+
+## Proposed Changes
+
+### 1. Authentication Layer (NextAuth)
+- **Dependency**: Install `next-auth` (v4/v5 depending on Next config).
+- **Implementation**: Create `src/app/api/auth/[...nextauth]/route.ts`. 
+- **Providers**: Configure `GoogleProvider` (requesting specific `https://www.googleapis.com/auth/calendar.readonly` scopes) and `GithubProvider` (requesting `repo` scopes).
+- **Session API**: Expose standard `useSession` hooks to the dashboard.
+
+### 2. Live Synchronization APIs (`routes/sync.ts` equivalent)
+We will build robust, authentic Next.js backend routes that the UI can hit to fetch real payload data.
+#### [NEW] [src/app/api/calendar/route.ts](file:///Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/apps/web/src/app/api/calendar/route.ts)
+- Verifies NextAuth session token.
+- Uses the Google Calendar REST API (`https://www.googleapis.com/calendar/v3/calendars/primary/events`) to fetch the logged-in user's events for the current day.
+#### [NEW] [src/app/api/github/route.ts](file:///Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/apps/web/src/app/api/github/route.ts)
+- Verifies NextAuth session token.
+- Uses standard Octokit queries (or direct REST calls) to `GET /issues` assigned to the authenticated user.
+
+### 3. Bi-directional Sync Capabilities
+- **Status Toggles**: We will implement `PUT /api/github` routes so that checking off a task in SabrinaOS attempts to patch the issue status natively in GitHub, satisfying the "bi-directional" sync requirement.
+
+### 4. Layout & UI Overhauls (`page.tsx`)
+- **Grid Stability**: We will retain the pure CSS Grid but ensure text does not natively wrap or squeeze under extreme data loads.
+- **Sidebar**: Adjust to `bg-white/5` to satisfy the explicit transparent sidebar command.
+- **Card Precision**: Enforce that every valid loaded card uses `.glass-card`, with `padding: 16px`, `margin-bottom: 12px`, and explicitly `border: 1px solid rgba(255,255,255,0.1)`.
+- **Branding**: The logo will be adjusted to use `tracking-tight font-bold` and be strictly bound to the very top-left layout.
+
+## Verification Plan
+1. Install NextAuth and define explicit OAuth scopes in code.
+2. Provide the `useSession` wrapper across the application.
+3. Update `page.tsx` with SWR / `useEffect` fetchers hitting the new `/api` endpoints so the columns populate via HTTP requests rather than purely local state.
+4. Verify the exact CSS metrics requested (sidebar transparency, specific card padding, and branding alignment).
+
+# SabrinaOS Emergency UI & Data Overhaul (Phase 12)
+
+The dashboard requires an immediate transition to strictly functional data and proper CSS isolation. We will remove all fallback "mock" data and rely solely on SWR data fetching, while completely fixing the overlapping grid CSS and building a new 24-hour vertical timeline.
+
+## User Review Required
+> [!IMPORTANT]
+> I have audited the codebase. **You do not currently have `GOOGLE_CLIENT_ID` or `GITHUB_CLIENT_ID` configured in `.env` or `.env.local`**. The system is completely lacking the required OAuth keys. As requested, instead of showing a broken or "dummy" dashboard, I will build an explicit, beautiful "Setup & Integration" screen for when keys are missing. Do you approve this approach?
+
+## Proposed Changes
+
+### 1. Data Layer Hard-Reset
+- **Wipe Dummy Data**: All hardcoded array tasks (`Pack for Helsinki`, etc.) will be eliminated. 
+- **Setup State**: If SWR detects missing API integration, `page.tsx` will yield to a new Apple-inspired "Setup & Integration" empty-state screen guiding the user to configure `.env.local`.
+
+### 2. Emergency Layout Fixes
+- **Strict CSS Grid**: Enforce `grid-template-columns: repeat(3, minmax(0, 1fr))` with absolutely `0` overlapping allowed. 
+- **Sidebar Polish**: Remove all boxy background colors. Apply `24px` padding to items and use thin monochromatic icons with stroke width 1.5.
+- **Typography**: Convert "TODAY'S FOCUS" to "Today's focus" (Sentence case). Force `SF Pro`, `Inter` universally.
+
+### 3. The 24-Hour Vertical Calendar
+- Refactor the right-most "Schedule" column from generic cards into a true 24-hour vertical timeline visualization. 
+- Map SWR Google Calendar events onto fixed vertical time slots for accurate spatial representation of the day.
+
+## Verification Plan
+1. Validate F (Focus Mode) and X (Auto-Schedule) work flawlessly against actual fetched SWR payloads rather than hardcoded mock data.
+2. Confirm the 24-hour vertical timeline renders appropriately within the strictly 0-overlap CSS Grid.
+
+# Phase 13: Back to Basics (Real Calendar & Emails)
+
+Due to OAuth limitations with NextAuth and missing environment variables, the system blocked the user with an empty state. We will pivot back to the original `PersonalOS` approach: utilizing the local `token.json` and `credentials.json` via the `googleapis` SDK directly in Next.js API routes.
+
+## Proposed Changes
+
+### 1. API Route Re-Implementation
+- Install `googleapis` in `apps/web`.
+- Create/Modify `src/app/api/calendar/route.ts` to fetch a 3-day window of Google Calendar events using `token.json` from the project root.
+- Create `src/app/api/inbox/route.ts` to fetch Primary Unread Gmail messages.
+
+### 2. UI Restoration (`page.tsx`)
+- Rip out the `NextAuth` strict blocking UI (the "SabrinaOS Setup Required" screen).
+- Hook SWR to `/api/calendar` and `/api/inbox`.
+- Map the Gmail messages to the `Inbox` column and Google Calendar events to the `Schedule` column (mapping to the 24-hour timeline).
+
+## Phase 18: Upcoming Trips Engine (Legacy PersonalOS)
+- **Strategy:** Instead of implementing enterprise API keys for third-party travel planners, natively scan the user's authenticated Google mailbox for flight receipts.
+- **Query:** Add an endpoint `/api/trips` in `legacy/server.js` that performs a tight Gmail search query (e.g., `subject:flight OR subject:itinerary OR from:tripit`).
+- **Formatting:** Map the parsed email metadata into structured trip objects and stream them live to the "Upcoming Trips" component in `legacy/index.html`.
+
+## Phase 19: Merged Calendar Trips
+- **Strategy:** The user has synced TravelPerk directly to their Google Calendar. The `/api/trips` endpoint needs to be upgraded to pull from BOTH the Gmail API and the Google Calendar API simultaneously.
+- **Query:** Filter the calendar events using a keyword search (e.g., "Flight", "Train", "Hotel") or just pull all events and filter them in memory, then map them to the same `Trip` object standard used by the Gmail parser.
+
+## Phase 21: Deep AI Trip Parsing & Filtering
+- **Strategy:** The user complained that basic Regex parsing leaves the email trips looking unstructured and occasionally shows trips from the past if the email itself is recent. We have Gemini accessible in `server.js`.
+- **Implementation:** Modify `/api/trips` to pass the raw Gmail subjects and snippets to a single Gemini `generateContent` batch prompt. The prompt will instruct the AI to extract clean titles (e.g., `Flight BA 32: HKG to LHR`), exact action dates, and actively omit any trips where the travel date has already passed.
+
+## Phase 23: Dashboard Layout & Trip Sorting
+- **Strategy:** The user wants to drastically reorganize the 3-column masonry grid layout to improve their workflow and adjust how Trips are presented.
+- **Data Sorting**: Update `/api/trips` in `server.js` to sort by `a.timestamp - b.timestamp` so the most imminent upcoming trip displays at the very top.
+- **Trips UI**: Add a scrollwheel to the "Upcoming Trips" container in `index.html` by applying `max-h-[...]` and `overflow-y-auto`, ensuring only the top 3 cards are visible at a time.
+- **Layout Restructure**: Modify the main grid in `index.html`:
+  - **Left Column**: Move the "Actionable Inbox" here.
+  - **Middle Column**: Stack the "Tasks" Kanban panel directly on top of the "Schedule" panel.
+  - **Right Column**: Retain exactly as "Upcoming Trips".
+
+## Phase 25: Grid Reshuffle (Tasks + Trips)
+- **Strategy:** The user found that the horizontal alignment constraints broke visual symmetry. We will restructure the DOM again.
+- **Layout Changes**:
+  - **Column 1**: `Actionable Inbox` (Remains unchanged)
+  - **Column 2**: Stack `Tasks` on top, and `Upcoming Trips` on bottom.
+  - **Column 3**: Right-align `Schedule` and rename its header text to `Events`. Needs to fill the entire vertical height of Column 3.
+
+## Phase 26: Header Context Widget (Time, Date, Weather)
+- **Strategy:** Provide temporal and environmental context natively inside the top navigation bar, acting as a true "Control Centre" Heads-Up Display (HUD).
+- **Implementation**:
+  - **HTML/CSS**: Inject a new flex container in the center of the top navigation bar (`<header>`) to hold the Date, Time, and Weather metrics with glassmorphism `text-white/60` aesthetic string formatting.
+  - **Time/Date Engine**: Create specialized `setInterval` vanilla JavaScript logic in `index.html` to update the clock every second and format the date.
+  - **Weather API**: Utilize the free, no-CORS `open-meteo` API to fetch the current temperature and weathercode for the user's primary locale (defaulting to London, UK). Map WMO weathercodes to native emojis (☀️, 🌧️, ☁️).
+
+## Phase 27: GitHub Push & Clean Up
+- **Strategy:** The user wants to shut down and save the code to `https://github.com/sabrinacarmona/sabrina-control-centre`, ensuring unused files are deleted.
+- **Action Plan**:
+  - **1. Delete Dead Code**: Remove the `apps/` directory and any remnant files from the aborted Next.js/Postgres rewrite.
+  - **2. Promote Express App**: Move the contents of the `legacy/` folder (the active application) up into the root `MyDashboard` folder, and delete the empty `legacy/` directory.
+  - **3. Security**: Create a strict `.gitignore` to ensure `credentials.json`, `token.json`, and `node_modules` are ignored to prevent leaking Google API secrets to a public repository.
+  - **4. Git Push**: Initialize a git repository locally, commit all changes with a solid message, add the user's remote URL, and push to the `main` branch.
+
+## Phase 28: Daily Rituals & Habit Tracking
+- **Strategy:** The user selected option 1: A "Morning / Evening Routine" checklist that automatically resets at midnight to encourage daily habits before diving into deep work.
+- **Implementation**:
+  - **Data Structure**: Create a new local file `rituals.json` on the Express backend, tracking `{ id, title, completed, lastResetDate }`.
+  - **API Endpoints**: 
+    - `GET /api/rituals`: Returns the list, but crucially, if `lastResetDate !== today`, it bulk resets all `completed` booleans to `false` and updates the date before returning.
+    - `PUT /api/rituals/:id`: Toggles the completion state.
+  - **UI Integration**: Inject a sleek, compact "Daily Rituals" glassmorphism card into `index.html`. Given the layout, the top of **Column 1 (Actionable Inbox)** or **Column 2 (Tasks)** are the best candidates. We will place it at the top of Column 2, pushing the Kanban down slightly, as Rituals are usually performed *before* jumping into Tasks.
+
+## Phase 29: Ideation and Planning (Scratchpad)
+- **Problem**: The user frequently has random thoughts or transient focus items during the day that don't belong in a formal email or a structured Kanban task.
+- **Strategy**: Implement a minimalist **Scratchpad / Quick Notes** module into the dashboard.
+- **Implementation Ideas**:
+  - Add a lightweight `textarea` to the bottom of Column 1 (below the Inbox) or embedded inside Zenith Focus Mode.
+  - Native `localStorage` or `notes.json` persistence so the notes survive refreshes.
+  - Auto-save on `keyup` to provide a seamless "dump your brain here" user experience.
+
+## Phase 30: SQLite Data Migration (Tech Debt)
+- **Problem**: Concurrent JSON file writes via `fs.writeFileSync()` block the Node.js event loop and lead to high-probability file corruption.
+- **Strategy**: Migrate all local flat-file storage (`tasks.json`, `rituals.json`, `notes.json`) into a single SQLite database (`database.db`).
+- **Implementation**:
+  - Install `better-sqlite3` (a fast, synchronous SQLite3 wrapper for Node.js).
+  - Create table schemas for `tasks`, `rituals`, and `notes`.
+  - Write a one-time migration script (or initialization logic block) to parse existing JSON files and INSERT them into the database before deleting the `.json` files.
+  - Update all `/api/tasks`, `/api/rituals`, and `/api/notes` routes in `server.js` to execute SQL queries instead of `fs` reads/writes.
+
+## Phase 31: API Caching (Tech Debt)
+- **Problem**: The frontend UI polls Google APIs every 60 seconds. `server.js` passes these requests straight through, generating 1,440 API calls per day per active dashboard instance, risking rate limits.
+- **Strategy**: Implement server-side memory caching for Google Calendar and Gmail responses.
+- **Implementation**:
+  - Install `node-cache`.
+  - Cache `/api/inbox` and `/api/calendar` successful responses with a TTL of 300 seconds (5 minutes).
+  - Add a Cache-Hit header or logging to verify the mitigation works.
+
+## Phase 32: Pomodoro Timer & Analytics
+- **Problem**: The user currently has a basic Focus Mode but lacks structured time management (Pomodoro) and historical data on how much time they actually spend "in the zone".
+- **Strategy**: 
+  1. Build a functional 25/5 Pomodoro timer into the UI (likely integrated with the Focus Mode overlay).
+  2. Log completed Pomodoro sessions into the SQLite database to track daily/weekly focus analytics.
+- **Implementation**:
+  - **Database (`server.js`)**: Create a `pomodoros` SQL table `{ id, duration_minutes, completed_at, task_id_optional }`.
+  - **API (`server.js`)**: Add `POST /api/pomodoros` to log a completed session, and `GET /api/pomodoros/stats` to aggregate data (e.g., "Total focused hours this week").
+  - **Frontend UI (`index.html`)**:
+    - Add a sleek Timer widget (Start, Pause, Reset).
+    - When a 25-minute timer finishes, trigger an alert sound/notification, and automatically `POST` the session to the backend.
+    - Add a small "Focus Analytics" chart or stat-block into Column 3 (Events column) to display daily progress.
+</file>
+
+<file path="MailCraft/src/api.ts">
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY as string,
+  dangerouslyAllowBrowser: true,
+});
+
+export type Tone =
+  | "professional"
+  | "warm"
+  | "concise"
+  | "friendly"
+  | "formal"
+  | "persuasive"
+  | "apologetic"
+  | "grateful";
+
+export const TONE_LABELS: Record<Tone, string> = {
+  professional: "Professional",
+  warm: "Warm",
+  concise: "Concise",
+  friendly: "Friendly",
+  formal: "Formal",
+  persuasive: "Persuasive",
+  apologetic: "Apologetic",
+  grateful: "Grateful",
+};
+
+const TONE_DESCRIPTIONS: Record<Tone, string> = {
+  professional:
+    "Clear, polished, and business-appropriate. Confident without being stiff.",
+  warm:
+    "Friendly and personable with genuine warmth. Approachable yet respectful.",
+  concise:
+    "Brief and to the point. Every sentence earns its place. No filler.",
+  friendly:
+    "Casual and upbeat. Like writing to a colleague you get along with.",
+  formal:
+    "Traditional business correspondence. Proper structure and courteous language.",
+  persuasive:
+    "Compelling and action-oriented. Builds a clear case with confident language.",
+  apologetic:
+    "Sincere and accountable. Acknowledges the issue and offers a path forward.",
+  grateful:
+    "Genuinely thankful and appreciative. Specific about what you value.",
+};
+
+function buildSystemPrompt(tone: Tone): string {
+  return `You are an expert email writer. Your task is to transform the user's rough thoughts into a polished, well-structured email.
+
+Tone: ${TONE_LABELS[tone]} — ${TONE_DESCRIPTIONS[tone]}
+
+Rules:
+- Write ONLY the email body. No subject line, no meta-commentary, no explanations.
+- Start directly with the greeting (e.g., "Hi Sarah," or "Dear Mr. Thompson,").
+- End with an appropriate sign-off (e.g., "Best regards," or "Thanks,") followed by a blank line for the sender's name.
+- Match the tone precisely. Every word should feel intentional.
+- Keep paragraphs short (2-3 sentences max) for readability.
+- If the user provides context about an email they're replying to, weave in relevant references naturally.
+- Never use placeholder brackets like [Name] — if information is missing, write around it gracefully.
+- Do not include a subject line or any text before the greeting.`;
+}
+
+function buildUserMessage(
+  rawThoughts: string,
+  replyContext: string | null
+): string {
+  let message = `Here are my rough thoughts for this email:\n\n${rawThoughts}`;
+
+  if (replyContext && replyContext.trim().length > 0) {
+    message += `\n\n---\n\nThis is a reply to the following email:\n\n${replyContext}`;
+  }
+
+  return message;
+}
+
+export async function generateEmail(
+  rawThoughts: string,
+  tone: Tone,
+  replyContext: string | null,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal
+): Promise<string> {
+  const stream = client.messages.stream(
+    {
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: buildSystemPrompt(tone),
+      messages: [
+        {
+          role: "user",
+          content: buildUserMessage(rawThoughts, replyContext),
+        },
+      ],
+    },
+    { signal }
+  );
+
+  let fullText = "";
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      fullText += event.delta.text;
+      onChunk(fullText);
+    }
+  }
+
+  return fullText;
+}
+</file>
+
+<file path="MailCraft/src/App.tsx">
+import { useState, useRef, useCallback } from "react";
+import { generateEmail, TONE_LABELS, type Tone } from "./api.ts";
+
+type Status = "idle" | "generating" | "success" | "error";
+
+const TONES = Object.keys(TONE_LABELS) as Tone[];
+
+// ─── Icons (inline SVG) ──────────────────────────────────────────────
+
+function MailIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
+function SparklesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+      <path d="M20 3v4" />
+      <path d="M22 5h-4" />
+    </svg>
+  );
+}
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+function RefreshIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+      <path d="M16 16h5v5" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function LoaderIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2v4" />
+      <path d="m16.2 7.8 2.9-2.9" />
+      <path d="M18 12h4" />
+      <path d="m16.2 16.2 2.9 2.9" />
+      <path d="M12 18v4" />
+      <path d="m4.9 19.1 2.9-2.9" />
+      <path d="M2 12h4" />
+      <path d="m4.9 4.9 2.9 2.9" />
+    </svg>
+  );
+}
+
+function ReplyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="9 17 4 12 9 7" />
+      <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+    </svg>
+  );
+}
+
+// ─── Header ──────────────────────────────────────────────────────────
+
+function Header() {
+  return (
+    <header className="pt-12 pb-8 text-center">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 mb-5">
+        <MailIcon className="w-7 h-7 text-primary" />
+      </div>
+      <h1 className="text-2xl font-bold text-grey-900 tracking-tight">
+        MailCraft
+      </h1>
+      <p className="mt-2 text-base text-grey-500 max-w-md mx-auto">
+        Transform your rough thoughts into polished, ready-to-send emails.
+      </p>
+    </header>
+  );
+}
+
+// ─── Email Input ─────────────────────────────────────────────────────
+
+function EmailInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="card p-6">
+      <label
+        htmlFor="raw-thoughts"
+        className="block text-sm font-semibold text-grey-800 mb-2"
+      >
+        What do you want to say?
+      </label>
+      <p className="text-sm text-grey-500 mb-3">
+        Write your thoughts freely — grammar, structure, and polish are on us.
+      </p>
+      <textarea
+        id="raw-thoughts"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        rows={5}
+        placeholder="e.g. Need to tell Sarah the project deadline moved to next Friday. Want to keep it positive but make sure she knows it's firm this time..."
+        className="w-full resize-none rounded-lg border border-grey-200 bg-white px-4 py-3 text-base text-grey-900 placeholder:text-grey-400 shadow-input transition-shadow duration-200 focus:shadow-input-focus focus:border-primary focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+      />
+      <div className="mt-2 text-right">
+        <span className="text-xs text-grey-400">
+          {value.length > 0 ? `${value.length} characters` : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reply Context ───────────────────────────────────────────────────
+
+function ReplyContext({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-6 py-4 text-left cursor-pointer hover:bg-grey-100/50 transition-colors duration-200"
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-grey-600">
+          <ReplyIcon className="w-4 h-4" />
+          Replying to an email?
+          {value.trim().length > 0 && !isOpen && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-xs text-primary font-medium">
+              Added
+            </span>
+          )}
+        </span>
+        <ChevronDownIcon
+          className={`w-4 h-4 text-grey-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="px-6 pb-5">
+            <label htmlFor="reply-context" className="sr-only">
+              Original email you are replying to
+            </label>
+            <textarea
+              id="reply-context"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              disabled={disabled}
+              rows={4}
+              placeholder="Paste the email you're replying to here..."
+              className="w-full resize-none rounded-lg border border-grey-200 bg-grey-100/50 px-4 py-3 text-sm text-grey-800 placeholder:text-grey-400 shadow-input transition-shadow duration-200 focus:shadow-input-focus focus:border-primary focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tone Selector ───────────────────────────────────────────────────
+
+function ToneSelector({
+  selected,
+  onSelect,
+  disabled,
+}: {
+  selected: Tone;
+  onSelect: (tone: Tone) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="card p-6">
+      <fieldset disabled={disabled}>
+        <legend className="block text-sm font-semibold text-grey-800 mb-3">
+          Choose a tone
+        </legend>
+        <div className="flex flex-wrap gap-2" role="radiogroup">
+          {TONES.map((tone) => {
+            const isSelected = tone === selected;
+            return (
+              <button
+                key={tone}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => onSelect(tone)}
+                disabled={disabled}
+                className={`
+                  inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+                  transition-all duration-200 cursor-pointer
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${
+                    isSelected
+                      ? "bg-primary text-white shadow-button"
+                      : "bg-grey-100 text-grey-600 hover:bg-grey-200 hover:text-grey-800"
+                  }
+                `}
+              >
+                {TONE_LABELS[tone]}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
+// ─── Generate Button ─────────────────────────────────────────────────
+
+function GenerateButton({
+  onClick,
+  disabled,
+  isGenerating,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+  isGenerating: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="btn-primary w-full py-3.5 text-base"
+    >
+      {isGenerating ? (
+        <>
+          <LoaderIcon className="w-4 h-4 animate-spin" />
+          Crafting your email...
+        </>
+      ) : (
+        <>
+          <SparklesIcon className="w-4 h-4" />
+          Generate Email
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Email Output ────────────────────────────────────────────────────
+
+function EmailOutput({
+  email,
+  status,
+  onRegenerate,
+}: {
+  email: string;
+  status: Status;
+  onRegenerate: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = email;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [email]);
+
+  if (status === "idle") return null;
+
+  return (
+    <div className="card animate-slide-up overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-grey-200">
+        <h2 className="text-sm font-semibold text-grey-800">
+          {status === "generating" ? "Generating..." : "Your Email"}
+        </h2>
+        {status === "success" && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRegenerate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-grey-600 hover:text-grey-800 hover:bg-grey-100 transition-colors duration-200 cursor-pointer"
+              aria-label="Regenerate email"
+            >
+              <RefreshIcon className="w-3.5 h-3.5" />
+              Regenerate
+            </button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`
+                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                transition-all duration-200 cursor-pointer
+                ${
+                  copied
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-primary/10 text-primary hover:bg-primary/20"
+                }
+              `}
+              aria-label={copied ? "Copied to clipboard" : "Copy email to clipboard"}
+            >
+              {copied ? (
+                <>
+                  <CheckIcon className="w-3.5 h-3.5" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <CopyIcon className="w-3.5 h-3.5" />
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 py-5">
+        {status === "generating" && email.length === 0 ? (
+          <div className="space-y-3">
+            <div className="h-4 bg-grey-100 rounded animate-pulse w-3/4" />
+            <div className="h-4 bg-grey-100 rounded animate-pulse w-full" />
+            <div className="h-4 bg-grey-100 rounded animate-pulse w-5/6" />
+            <div className="h-4 bg-grey-100 rounded animate-pulse w-2/3" />
+          </div>
+        ) : (
+          <pre className="whitespace-pre-wrap font-sans text-base text-grey-800 leading-relaxed">
+            {email}
+            {status === "generating" && (
+              <span className="inline-block w-0.5 h-5 bg-primary ml-0.5 animate-pulse align-text-bottom" />
+            )}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Error Banner ────────────────────────────────────────────────────
+
+function ErrorBanner({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className="rounded-lg border border-red-200 bg-red-50 px-5 py-4 animate-fade-in"
+      role="alert"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-red-800">
+            Something went wrong
+          </p>
+          <p className="mt-1 text-sm text-red-600">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="shrink-0 rounded-md p-1 text-red-400 hover:text-red-600 hover:bg-red-100 transition-colors duration-200 cursor-pointer"
+          aria-label="Dismiss error"
+        >
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────
+
+function Footer() {
+  return (
+    <footer className="py-8 text-center">
+      <p className="text-xs text-grey-400">
+        Built with Claude. Your thoughts stay between you and the AI.
+      </p>
+    </footer>
+  );
+}
+
+// ─── App ─────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [rawThoughts, setRawThoughts] = useState("");
+  const [replyContext, setReplyContext] = useState("");
+  const [selectedTone, setSelectedTone] = useState<Tone>("professional");
+  const [generatedEmail, setGeneratedEmail] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  const canGenerate = rawThoughts.trim().length > 0 && status !== "generating";
+
+  const handleGenerate = useCallback(async () => {
+    if (!canGenerate) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setStatus("generating");
+    setGeneratedEmail("");
+    setErrorMessage("");
+
+    try {
+      await generateEmail(
+        rawThoughts.trim(),
+        selectedTone,
+        replyContext.trim() || null,
+        (text) => setGeneratedEmail(text),
+        controller.signal
+      );
+      setStatus("success");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setErrorMessage(message);
+      setStatus("error");
+    }
+  }, [rawThoughts, selectedTone, replyContext, canGenerate]);
+
+  const handleRegenerate = useCallback(() => {
+    handleGenerate();
+  }, [handleGenerate]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="mx-auto max-w-content px-5">
+        <Header />
+
+        <div className="space-y-4 pb-4">
+          <EmailInput
+            value={rawThoughts}
+            onChange={setRawThoughts}
+            disabled={status === "generating"}
+          />
+
+          <ReplyContext
+            value={replyContext}
+            onChange={setReplyContext}
+            disabled={status === "generating"}
+          />
+
+          <ToneSelector
+            selected={selectedTone}
+            onSelect={setSelectedTone}
+            disabled={status === "generating"}
+          />
+
+          <GenerateButton
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            isGenerating={status === "generating"}
+          />
+
+          {status === "error" && errorMessage && (
+            <ErrorBanner
+              message={errorMessage}
+              onDismiss={() => {
+                setErrorMessage("");
+                setStatus("idle");
+              }}
+            />
+          )}
+
+          <EmailOutput
+            email={generatedEmail}
+            status={status}
+            onRegenerate={handleRegenerate}
+          />
+        </div>
+
+        <Footer />
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="MailCraft/src/index.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #fafbfc;
+    color: #0f172a;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    line-height: 1.625;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  :focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  textarea,
+  input {
+    font-family: inherit;
+  }
+
+  textarea::placeholder,
+  input::placeholder {
+    color: #94a3b8;
+  }
+}
+
+@layer components {
+  .card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2),
+      0 4px 12px rgba(37, 99, 235, 0.15);
+    transition: all 200ms ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3),
+      0 6px 16px rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</file>
+
+<file path="MailCraft/src/main.tsx">
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error(
+    "Root element not found. Ensure there is a <div id='root'> in your index.html."
+  );
+}
+
+createRoot(rootElement).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+</file>
+
+<file path="MailCraft/src/vite-env.d.ts">
+/// <reference types="vite/client" />
+</file>
+
+<file path="MailCraft/package.json">
+{
+  "name": "mailcraft",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5"
+  }
+}
+</file>
+
+<file path="MailCraft/README.md">
+# MailCraft
+
+Transform rough thoughts into polished emails with AI.
+
+MailCraft uses the Claude API to turn your quick notes and ideas into well-crafted emails. Choose from 8 tones — professional, warm, concise, friendly, formal, persuasive, apologetic, or grateful — and get a finished email in seconds.
+
+## Setup
+
+1. **Clone and install dependencies**
+
+```bash
+cd mailcraft
+npm install
+```
+
+2. **Add your Anthropic API key**
+
+Copy the example env file and add your key:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and replace `your_key_here` with your actual API key from [console.anthropic.com](https://console.anthropic.com/).
+
+3. **Start the dev server**
+
+```bash
+npm run dev
+```
+
+The app opens at `http://localhost:5173`.
+
+## Usage
+
+1. Type your rough thoughts into the main text area
+2. Optionally paste an email you're replying to
+3. Pick a tone
+4. Hit **Generate Email**
+5. Copy the result to your clipboard with one click
+
+## Tech Stack
+
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- Anthropic Claude API (streaming)
+
+## Notes
+
+- The API key is used client-side via the Anthropic JS SDK with `dangerouslyAllowBrowser: true`. This is fine for local development but should not be deployed to production without a backend proxy.
+- The app uses the `claude-sonnet-4-6` model.
+</file>
+
+<file path="manifest.json">
+{
+    "name": "Sabrina's Control Centre",
+    "short_name": "Personal-OS",
+    "description": "An elite personal operating system dashboard",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0A0A0B",
+    "theme_color": "#0A0A0B",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}
+</file>
+
+<file path="railway.json">
+{
+    "$schema": "https://railway.app/railway.schema.json",
+    "build": {
+        "builder": "NIXPACKS"
+    },
+    "deploy": {
+        "startCommand": "node server.js",
+        "restartPolicyType": "ON_FAILURE"
+    },
+    "volumes": {
+        "data": "/data"
+    }
+}
+</file>
+
+<file path="TECH_DIRECTOR_AUDIT.md">
+# 👑 GM-Level Codebase Audit: SabrinaOS
+
+**Date:** 2026-02-28
+**Scope:** Security, Performance, UI/UX Debt, and Tech Debt across `server.js`, `/MyDashboard/index.html`, `/MyDashboard/styles.css`, and SQLite schemas.
+**Rule of Engagement:** Read-only analysis. 
+
+---
+
+## 🛡️ 1. Security Vulnerabilities
+
+**Findings:**
+- **Missing HTTP Security Headers (Helmet):** `server.js` does not use `helmet()`. Without it, you are vulnerable to basic XSS, clickjacking, and mime-sniffing attacks.
+- **Overly Permissive CORS:** `app.use(cors())` is invoked without configuration, allowing any origin to hit your local API. This should be locked down to `origin: 'http://localhost:3000'` (or the specific production Railway URL).
+- **Insufficient Input Validation:** The endpoints `POST /api/tasks`, `POST /api/pomodoros`, and `POST /api/mailcraft` rely on generic truthiness (`if (!title)`). There is no strict schema validation (like Zod or Joi) to prevent malformed data, excessively long strings, or prototype pollution from being saved to the SQLite database or passed to the Gemini API.
+- **SQLite Injection Risk Mitigation:** Fortunately, Better-SQLite3 uses parameterized queries (`db.prepare(...).run/get(...)`), which inherently prevents traditional SQL injection. However, ensure no future queries use string concatenation.
+- **Secret Management:** Storing `credentials.json` directly in the root (even if ignored by Git) is risky for production. Consider migrating all OAuth secrets to 100% environment variables (`process.env`) and initializing the Google Auth client dynamically to avoid file system dependencies in the container.
+
+---
+
+## 🏎️ 2. Performance Bottlenecks
+
+**Findings:**
+- **The N+1 API Problem (Gmail):** In `/api/inbox`, you query `gmail.users.messages.list` and then use `Promise.all` to fetch the metadata for each individual message. While `Promise.all` makes it concurrent, this is still 1 + N requests to the Gmail API. If the cache expires and a user spams page refreshes, you will quickly hit the `429 Too Many Requests` rate limit again.
+- **Missing SQLite Indexes:** The SQLite table definitions in `server.js` (`tasks`, `pomodoros`, `rituals`) do not have indexes. As the database grows, queries like `SELECT * FROM tasks WHERE status = 'todo'` will perform full table scans. You need an index on `status` and `context`.
+- **Frontend Race Conditions (Lack of AbortControllers):** The frontend relies heavily on vanilla JS `fetch()` calls. If the user toggles rapidly between "Personal" and "Professional" context, previous fetch promises may resolve *after* the UI has switched, leading to data bleeding or DOM overwriting errors.
+- **Sub-optimal Polling Strategy:** `setInterval(fetchGoogleData, 300000)` and `visibilitychange` listeners are better than a 60s hard loop. However, to guarantee real-time updates without polling, an event-driven architecture (Server-Sent Events or WebSockets for the UI, and Google Cloud Pub/Sub webhooks for Gmail changes) would be drastically superior.
+
+---
+
+## 🎨 3. UI/UX & CSS Debt
+
+**Findings:**
+- **Hardcoded Colors bypass the Context Engine:** The UI heavily utilizes Tailwind utility classes (e.g., `text-pink-400`, `text-soft-amber`, `bg-blue-500/10`) directly in `index.html`. For a true Context Engine, these should be mapped to CSS variables (`var(--accent-primary)`) that dynamically shift colors when moving between Personal and Professional modes.
+- **WCAG Accessibility Contrast Violations:** Fonts with classes like `text-white/30`, `text-[10px]`, and `placeholder-white/30` fail the minimum contrast ratio requirements for readability, making the UI harder to use in bright environments.
+- **Z-Index Warfare:** You have conflicting z-indexes. `.is-dragging` forces `z-index: 50`, while the `.zen-focus` overlay also occupies `z-index: 50`. Furthermore, `mailcraft-panel` operates at `z-index: 10`. As the UI complexity grows, these manual z-index declarations will inevitably overlap improperly.
+- **CSS Fragmented Architecture:** There is a large `<style>` block at the top of `index.html` handling complex logic (`.trip-accordion-content`, `@media` queries). This should be migrated and consolidated into `styles.css` to keep the HTML architecture clean.
+
+---
+
+## 🗑️ 4. Dead Code & Tech Debt
+
+**Findings:**
+- **Orphaned CSS Logic:** `styles.css` contains `/* Agent Gamma Haptic & Physics Hooks */`. This seems to be left over from a previous uncompleted system.
+- **Redundant DOM Manipulation:** The `updateContextTheme()` function in `index.html` manually applies and removes Tailwind classes to buttons step-by-step. This logic is brittle and can be replaced with a cleaner "state-based" reactive re-render pattern.
+- **Misleading Loading States:** The HTML hardcodes "Syncing Calendar data..." inside the `#trips-container`. It should explicitly map to what it is loading ("Syncing upcoming trips...").
+- **Error Handling Debt:** Uncaught edge cases in `/api/auth/token` fail to surface specific error origins to the frontend, resulting in vague user alerts.
+
+---
+
+**AUDIT COMPLETE.** 
+Next Steps: Review findings and convert the most critical items into actionable engineering tasks.
+</file>
+
+<file path=".env.example">
+GEMINI_API_KEY=your_gemini_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GOOGLE_TOKEN_JSON=your_google_token_here_optional
+GOOGLE_CREDENTIALS_JSON='{"web":{"client_id":"...","project_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_secret":"...","redirect_uris":["..."]}}'
+</file>
+
+<file path=".gitignore">
+node_modules/
+.DS_Store
+.env
+credentials.json
+token.json
+tasks.json
+rituals.json
+notes.json
+database.db
+database.db-journal
+database.db-wal
+database.db-shm
+</file>
+
+<file path="template.env">
+# Google OAuth API Credentials
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+
+# Optional: You can paste the raw token.json string here for serverless auth if needed
+GOOGLE_TOKEN_JSON=
+
+# The app automatically uses /data/database.db if running on Railway.
+# RAILWAY_ENVIRONMENT=production
+</file>
+
+<file path="README.md">
+# Sabrina's Control Centre (v17.0) 🚀
+
+A private, "Apple-Dark-Mode" inspired life-optimization dashboard designed for deep focus and intentionality.
+
+This project evolved from a static links dashboard into a living, private intelligence hub that securely interacts with your Google Calendar, scans for upcoming travel, and provides real-time environmental context—all directly from your local machine, keeping you out of the corporate grid.
+
+## Comprehensive Feature Set
+We built this application from the ground up to replace heavy SaaS productivity tools. Here is everything currently implemented:
+
+### 1. The Zenith Focus Mode (UI/UX)
+- **Deep Work Toggle**: Press `<kbd>Enter Zen Mode</kbd>` (or hit `<kbd>F</kbd>`) to fade the entire dashboard into black.
+- **Micro-Interactions**: Features a heavy `backdrop-filter: blur(15px)` glassmorphism, completely obscuring the dashboard and centering *only* your current active task alongside a live Pomodoro countdown.
+- **macOS Midnight Aesthetic**: Custom UI explicitly defined with `#0A0A0B` backgrounds, `rgba(255, 255, 255, 0.05)` translucent cards, and Apple's `SF Pro` system typography.
+
+### 2. Heads-Up Display (The HUD)
+- **Live Clock**: Vanilla JS `setInterval` engine that ticks every second natively without React overhead.
+- **Environmental Context**: Automatically fetches real-time London temperatures via the **Open-Meteo API**.
+- **Emoji Mapping**: Intelligently converts WMO weather codes into native Unicode emojis (e.g., ☁️, ☀️, 🌧️) directly in the navigation bar.
+
+### 3. Google API Integrations (Local & Private)
+The backend (`server.js`) uses the official `googleapis` SDK, authenticating strictly via your local `credentials.json` and `token.json`. No databases, no external servers. 
+- **The Intelligent Inbox (`/api/inbox`)**: Connects to the Gmail API (`q: 'in:inbox is:unread'`) to pull down your primary actionable emails for rapid Kanban triage.
+- **The 30-Day Calendar (`/api/calendar`)**: Syncs with Google Calendar API to render a strict 30-day rolling timeline of your upcoming commitments.
+
+### 4. Advanced Travel & Trip Engine (`/api/trips`)
+- **Automated Scanning**: The Node server queries *all* of your connected Google Calendars for travel-related keywords (`Flight`, `Hotel`, `Train`, `TripIt`).
+- **Regex Cleaning**: Cleans messy subject lines (e.g., stripping out "TripIt Pro alert:") to render clean destinations.
+- **Chronological Sorting**: Algorithms sort the multi-calendar payloads chronologically so the most imminent trip always sits at the top of Column 2.
+
+### 5. Gemini AI Auto-Scheduler (`/api/ai/schedule`)
+- **Agentic Scheduling**: Hover over a Kanban task and hit `<kbd>X</kbd>`. The Express backend sends the task metadata alongside your *entire* 30-day Google Calendar payload to **Google's `gemini-2.5-pro`** model.
+- **Smart Placement**: Gemini acts natively as an Executive Assistant, finding the optimal 30-to-60-minute gap in your schedule to execute the task, and returns the assigned Date/Time with its logical reasoning.
+
+### 6. Local Kanban Engine
+- **Zero Latency**: A fully functional Drag-and-Drop (`dragstart`, `dragover`, `drop`) KanBan board.
+- **Persistence**: State is saved instantly to a local `tasks.json` file on your Macbook via `POST /api/tasks`.
+
+---
+
+## Setup & Installation
+
+To run Sabrina's Control Centre locally:
+
+1. **Install Node.js** (v18+ recommended).
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Add Google Cloud Credentials**:
+   - Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
+   - Enable the **Google Calendar API** and **Gmail API**.
+   - Create an OAuth 2.0 Client ID (Desktop Application) and download the JSON file.
+   - Rename the file to `credentials.json` and place it directly into the root folder of this repository. *(Note: This file is ignored by git).*
+
+4. **Add Gemini Capabilities (Optional)**:
+   - Create a `.env` file in the root directory.
+   - Add your API key: `GEMINI_API_KEY=your_key_here`.
+
+5. **Boot the Engine**:
+   ```bash
+   node server.js
+   ```
+
+6. **Launch & Authorize**:
+   - Open a browser and navigate to `http://localhost:3000`.
+   - On the very first launch, you will be prompted to click **Authorize with Google**. Follow the terminal/browser prompts to generate your local `token.json` file.
+   - Enjoy the focused Control Centre.
+
+---
+*Built with ❤️ via Agentic AI.*
+</file>
+
+<file path="styles.css">
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-color: #121212;
+    --zen-bg-color: #0A0A0B;
+    --accent-glow: rgba(79, 100, 229, 0.15);
+    /* Cool blue/grey for professional */
+}
+
+body.theme-personal {
+    --bg-color: #161412;
+    /* Warm dark */
+    --zen-bg-color: #0b0908;
+    --accent-glow: rgba(245, 158, 11, 0.15);
+    /* Warm amber for personal */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: #f8fafc;
+    overflow-x: hidden;
+    margin: 0;
+    transition: background-color 0.8s ease;
+}
+
+/* Zen Mode CSS */
+body.zen-active {
+    background-color: var(--zen-bg-color);
+}
+
+body.zen-active .hide-in-zen {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.95);
+}
+
+body.zen-active .zen-focus {
+    transform: scale(1.05);
+    z-index: 50;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.transition-all-slow {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphism utilities */
+.glass {
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass::before,
+.glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity: 0.6;
+}
+
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Ambient glow effects */
+.ambient-glow-subtle {
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
+    top: -300px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+/* Breathing Animation for Flow State */
+.breathing-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    animation: breathe 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes breathe {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Kanban Board Styling */
+.kanban-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+}
+
+.kanban-dropzone {
+    flex-grow: 1;
+    min-height: 100px;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.kanban-dropzone.drag-over {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.task-item {
+    cursor: grab;
+    user-select: none;
+}
+
+.task-item:active {
+    cursor: grabbing;
+}
+
+.task-item.dragging {
+    opacity: 0.5;
+}
+
+/* Agent Gamma Haptic & Physics Hooks */
+.is-dragging,
+.task-item:active,
+.inbox-item:active {
+    transform: scale(1.05) rotate(1deg) !important;
+    z-index: 50;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
+}
+
+.task-item,
+.inbox-item {
+    transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease !important;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "mydashboard",
+  "version": "1.0.0",
+  "description": "A private, \"Apple-Dark-Mode\" inspired life-optimization dashboard designed for deep focus and intentionality.",
+  "main": "test-dashboard.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@google/genai": "^1.43.0",
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "helmet": "^8.1.0",
+    "node-cache": "^5.1.2",
+    "node-cron": "^4.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sabrinacarmona/sabrina-control-centre.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sabrinacarmona/sabrina-control-centre/issues"
+  },
+  "homepage": "https://github.com/sabrinacarmona/sabrina-control-centre#readme"
+}
+</file>
+
+<file path="index.html">
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal-OS v2.0</title>
+    <!-- Web App Manifest for Mobile Installation -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        charcoal: '#121212',
+                        'neon-indigo': '#4f46e5',
+                        'soft-amber': '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Specific drag n drop styles not handled by tailwind */
+        .task-item.dragging {
+            opacity: 0.5;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .kanban-dropzone.drag-over {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        /* Smooth Accordion Styles */
+        .trip-accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            opacity: 0;
+        }
+
+        .trip-accordion.expanded .trip-accordion-content {
+            max-height: 500px;
+            /* arbitrary large enough number for content */
+            opacity: 1;
+        }
+
+        .trip-chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .trip-accordion.expanded .trip-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile specific overrides */
+        @media (max-width: 1024px) {
+            .mobile-fullscreen-scroll {
+                /* Override the fixed 80vh to allow full content scrolling on mobile */
+                height: auto !important;
+                min-height: 100vh;
+            }
+        }
+    </style>
+    <!-- Mobile Drag and Drop Polyfill for iOS Safari Parity -->
+    <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
+</head>
+
+<body class="min-h-screen relative flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
+    <div class="ambient-glow-subtle hide-in-zen"></div>
+
+    <!-- Top Navigation & Zen Toggle -->
+    <div
+        class="w-full max-w-[1400px] flex flex-col md:flex-row justify-between items-center mb-8 gap-6 md:gap-0 transition-all duration-700 relative z-50">
+        <h1
+            class="text-2xl font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500 text-center md:text-left">
+            Sabrina's <span style="color: var(--accent-text)" class="transition-colors duration-800">Control
+                Centre</span></h1>
+
+        <!-- Center Context Widget (HUD) -->
+        <div id="header-hud"
+            class="hidden md:flex flex-col items-center justify-center text-white/60 hide-in-zen transition-opacity duration-500 cursor-default">
+            <div class="flex items-center space-x-3 text-sm font-medium tracking-wide">
+                <span id="hud-date" class="uppercase text-white/50 text-xs">Loading Date...</span>
+                <span class="w-1 h-1 rounded-full bg-white/20"></span>
+                <span id="hud-time" class="text-white/80 font-bold text-lg">--:--</span>
+                <span class="w-1 h-1 rounded-full bg-white/20"></span>
+                <span id="hud-weather" class="flex items-center">
+                    <svg class="w-4 h-4 animate-pulse mr-1" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                </span>
+            </div>
+            <div class="flex items-center space-x-2 mt-0.5">
+                <div id="hud-location" class="text-[10px] text-white/30 tracking-widest uppercase">London, UK</div>
+                <span class="text-[10px] text-white/20">•</span>
+                <span id="hud-last-sync" class="text-[10px] text-white/30 tracking-widest uppercase">SYNCED:
+                    --:--</span>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center items-center gap-4">
+            <!-- Context Toggle -->
+            <div class="glass flex items-center rounded-full p-1 hide-in-zen transition-opacity duration-500">
+                <button id="context-professional"
+                    class="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white/10 text-white/90">Professional</button>
+                <button id="context-personal"
+                    class="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-white/40 hover:text-white/70">Personal</button>
+            </div>
+
+            <!-- Auth Status -->
+            <button id="auth-status"
+                class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500 cursor-pointer hover:bg-red-500/10 active:scale-95">
+                Google Not Connected
+            </button>
+
+            <!-- Zen Mode Toggle -->
+            <button id="zen-toggle"
+                class="glass px-6 py-2 rounded-full font-medium text-sm hover:bg-white/10 transition-colors flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                    </path>
+                </svg>
+                <span>Enter Zen Mode</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Sunsama 3-Column Layout -->
+    <div id="main-layout"
+        class="w-full max-w-[1400px] grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[80vh] transition-all duration-700 opacity-100 scale-100">
+
+        <!-- Column 1: Actionable Inbox -->
+        <div class="lg:col-span-3 flex flex-col space-y-6 h-auto lg:h-full hide-in-zen transition-all-slow">
+            <div class="rounded-2xl p-5 glass-card flex-grow overflow-hidden flex flex-col">
+                <div class="mb-4">
+                    <h2 class="text-md font-semibold flex items-center text-white/90 mb-1">
+                        <svg class="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Actionable Inbox
+                    </h2>
+                    <p class="text-xs text-white/50 ml-7 leading-tight">Drag unread emails to create follow-up tasks</p>
+                </div>
+                <div id="inbox-container" class="flex-grow overflow-y-auto pr-2 space-y-3">
+                    <div class="text-sm text-white/40 italic">Loading messages...</div>
+                </div>
+            </div>
+
+            <!-- Bottom of Column 1: Dynamic Panel (Quick Notes / MailCraft) -->
+            <div id="dynamic-notes-container" class="relative min-h-[300px] flex flex-col mt-4">
+
+                <!-- Quick Notes Scratchpad -->
+                <div id="quick-notes-panel"
+                    class="absolute inset-0 rounded-2xl p-5 glass-card flex flex-col transition-opacity duration-300 opacity-100 z-10 pointer-events-auto">
+                    <h2 class="text-md font-semibold flex items-center text-white/90 mb-3 shrink-0">
+                        <svg class="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                            </path>
+                        </svg>
+                        Quick Notes
+                    </h2>
+                    <textarea id="quick-notes-area"
+                        class="w-full flex-grow bg-transparent text-sm text-white/80 placeholder-white/30 resize-none focus:outline-none"
+                        placeholder="Jot down thoughts here... (auto-saves)"></textarea>
+                    <div class="text-right mt-1">
+                        <span id="notes-save-status"
+                            class="text-xs text-white/40 italic transition-opacity opacity-0">Saved</span>
+                    </div>
+                </div>
+
+                <!-- MailCraft Interface -->
+                <div id="mailcraft-panel"
+                    class="absolute inset-0 rounded-2xl glass-card flex flex-col transition-opacity duration-300 opacity-0 pointer-events-none z-0 overflow-hidden"
+                    style="backdrop-filter: blur(15px);">
+                    <!-- Header -->
+                    <div class="bg-white/5 p-3 shrink-0 border-b border-white/10 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <h2 class="text-sm font-semibold flex items-center text-white/90">
+                                <svg class="w-4 h-4 mr-2" style="color: var(--accent-text);" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                <span style="color: var(--accent-text);">MailCraft</span>
+                            </h2>
+                        </div>
+                        <button id="close-mailcraft-btn"
+                            class="w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white/60 hover:text-white/90">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="flex flex-col flex-grow p-5 gap-5 overflow-y-auto w-full">
+                        <div class="flex flex-col gap-1 shrink-0">
+                            <input type="hidden" id="mailcraft-reply-context" value="">
+                            <input type="hidden" id="mailcraft-reply-message-id" value="">
+                            <div class="text-[10px] text-white/70 uppercase tracking-widest truncate w-full"
+                                id="mailcraft-context-label">Replying to:</div>
+                        </div>
+
+                        <textarea id="mailcraft-draft-text"
+                            class="w-full min-h-[100px] bg-black/40 rounded-xl p-4 text-sm text-white placeholder-white/50 resize-none focus:outline-none focus:ring-1 shadow-inner ring-1 ring-white/10 transition-shadow shrink-0"
+                            style="--tw-ring-color: var(--accent-text);"
+                            placeholder="Rough thoughts for your reply..."></textarea>
+
+                        <div class="flex flex-col gap-3 shrink-0 mb-2">
+                            <span
+                                class="text-[11px] text-white/70 uppercase tracking-widest font-bold flex justify-between mb-1">
+                                Select Tone
+                                <span id="mailcraft-selected-tone-label" class="font-bold"
+                                    style="color: var(--accent-text);">Professional</span>
+                            </span>
+                            <div id="mailcraft-tones-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <!-- Generated Dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-2 shrink-0">
+                            <button id="mailcraft-generate-btn"
+                                class="w-full min-h-[48px] rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold flex justify-center items-center"
+                                style="color: var(--accent-text);">
+                                Generate Draft <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Output -->
+                            <div id="mailcraft-output-container" class="hidden flex-col gap-2 mt-2">
+                                <div class="flex justify-between items-center">
+                                    <span
+                                        class="text-[10px] text-white/50 uppercase tracking-widest font-semibold">Generated
+                                        Result</span>
+                                    <div class="flex items-center gap-2">
+                                        <button id="mailcraft-copy-btn"
+                                            class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition-colors text-white/70 flex items-center gap-1">
+                                            Copy <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                        <button id="mailcraft-send-btn" onclick="sendMailCraftReply()"
+                                            class="text-[10px] border disabled:opacity-50 disabled:cursor-not-allowed uppercase font-bold tracking-wider px-2 py-1 rounded transition-colors flex items-center gap-1"
+                                            style="background: var(--accent-text); color: black; border-color: transparent; box-shadow: 0 0 10px var(--accent-text);">
+                                            Send <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <pre id="mailcraft-output-text"
+                                    class="bg-black/30 rounded-xl p-3 text-sm text-white/90 whitespace-pre-wrap font-sans min-h-[100px] border border-white/5 ring-1 ring-inset ring-white/10"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Tasks & Upcoming Trips Stacked -->
+            <div class="lg:col-span-6 flex flex-col space-y-6 h-auto lg:h-[80vh] hide-in-zen transition-all-slow">
+
+                <!-- Daily Rituals (Top of Column 2) -->
+                <div class="rounded-2xl p-4 glass-card shrink-0">
+                    <h2 class="text-sm font-semibold flex items-center text-white/90 mb-3">
+                        <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Daily Rituals
+                    </h2>
+                    <div id="rituals-container" class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                        <div class="text-xs text-white/40 italic">Loading rituals...</div>
+                    </div>
+                </div>
+
+                <!-- Tasks (Top Half) -->
+                <div class="rounded-2xl p-6 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+                    <h2 class="text-lg font-semibold flex items-center text-white/90 mb-4">
+                        <svg class="w-5 h-5 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Tasks
+                    </h2>
+                    <form id="quick-add-form" class="mb-4 relative">
+                        <input type="text" id="quick-add-input"
+                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-12 text-sm text-white focus:outline-none focus:border-soft-amber transition-colors"
+                            placeholder="Type a task and hit Enter...">
+                        <span
+                            class="absolute left-4 top-3.5 text-white/40 font-mono text-xs border border-white/20 rounded px-1">A</span>
+                        <button type="submit" class="absolute right-3 top-2.5 p-1 text-white/40 hover:text-white/80">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4">
+                                </path>
+                            </svg>
+                        </button>
+                    </form>
+
+                    <div class="flex-grow overflow-y-auto pr-2 min-h-0 space-y-4 kanban-container">
+                        <div>
+                            <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1">Focus /
+                                Doing
+                            </h3>
+                            <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                                id="list-doing" data-status="doing">
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1 mt-4">Next
+                                Up
+                                / Todo</h3>
+                            <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                                id="list-todo" data-status="todo">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trips (Bottom Half) -->
+                <div class="rounded-2xl p-5 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+                    <h2 class="text-md font-semibold flex items-center text-white/90 mb-4 shrink-0">
+                        <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Upcoming Trips
+                    </h2>
+                    <div id="trips-container" class="flex-grow overflow-y-auto pr-2 space-y-3">
+                        <div class="text-sm text-white/40 italic">Syncing Calendar data...</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Column 3: Events & Pomodoro -->
+            <div
+                class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
+
+                <!-- Focus Heatmap -->
+                <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
+                    <h2 class="text-sm font-semibold flex items-center justify-between text-white/90 mb-4">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-soft-amber" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Focus Heatmap
+                        </span>
+                        <span id="pomodoro-stats" class="text-xs text-white/50 font-mono tracking-wider">0m TODAY</span>
+                    </h2>
+                    <div id="focus-heatmap-container"
+                        class="flex flex-row items-end justify-between space-x-1 h-14 w-full mt-2">
+                        <!-- Bars injected via JS -->
+                    </div>
+                </div>
+
+                <div class="mb-6 shrink-0">
+                    <h2 class="text-lg font-semibold flex items-center text-white/90 mb-1">
+                        <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Events
+                    </h2>
+                </div>
+                <div id="calendar-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
+                    <div class="flex flex-col items-center justify-center h-full text-white/40">
+                        <svg class="w-8 h-8 mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span>Loading Events...</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Invisible structure to align perfectly with Schedule bottom half -->
+            <div class="flex-1 min-h-[300px] pointer-events-none"></div>
+        </div>
+    </div>
+
+    <!-- Zen Focus Overlay -->
+    <div id="zen-layout"
+        class="fixed inset-0 z-40 hidden flex-col items-center justify-center pointer-events-none opacity-0 transition-opacity duration-700 bg-black/20 backdrop-blur-sm">
+
+        <div
+            class="pointer-events-auto text-center max-w-4xl px-8 py-16 w-full glass-card rounded-3xl mx-auto shadow-2xl flex flex-col items-center justify-center relative backdrop-blur-2xl bg-black/40 border-white/10 m-6">
+            <h2 class="text-sm uppercase tracking-[0.4em] text-white/60 mb-8 flex items-center justify-center">
+                <svg class="w-4 h-4 mr-3 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Focus Flow
+            </h2>
+            <div id="zen-task-display"
+                class="text-4xl md:text-5xl lg:text-6xl font-semibold text-white/90 leading-tight mb-12 max-w-2xl mx-auto">
+                <!-- Task inserted here -->
+            </div>
+
+            <!-- Flow State Timer -->
+            <div class="flex flex-col items-center justify-center mb-12 relative w-64 h-64 mx-auto">
+                <div class="breathing-circle"></div>
+                <!-- z-index to stay above the breathing circle -->
+                <div class="relative z-10 flex flex-col items-center justify-center h-full">
+                    <div id="flow-display"
+                        class="text-5xl md:text-7xl font-light tracking-widest text-white/90 mb-2 font-mono drop-shadow-lg">
+                    </div>
+                    <div id="zen-flow-text" class="text-xs tracking-[0.2em] text-white/30 uppercase hidden">Time in Flow
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-4 justify-center mb-12">
+                <button id="flow-toggle"
+                    class="px-8 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10 relative z-10">
+                    Enter Flow
+                </button>
+                <button id="flow-reset"
+                    class="px-6 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10 relative z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <button id="zen-complete-btn"
+                class="glass px-8 py-3 rounded-full font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors border-white/10 hidden mx-auto">
+                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Mark Complete
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Authentication Modal -->
+    <div id="auth-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="glass-card p-8 rounded-2xl max-w-md w-full text-center">
+            <h2 class="text-xl font-bold mb-4">Google Authentication Required</h2>
+            <p class="text-sm text-white/70 mb-6">Personal-OS needs permission to read your Calendar and Gmail to
+                populate the dashboard.</p>
+            <a id="auth-link" href="#" target="_blank"
+                class="inline-block bg-white text-black font-medium px-6 py-3 rounded-full hover:bg-gray-200 transition mb-6">Authorize
+                with Google</a>
+
+            <div class="text-left mt-4 border-t border-white/10 pt-4">
+                <p class="text-xs text-white/50 mb-2">After authorizing, paste the code here:</p>
+                <div class="flex space-x-2">
+                    <input type="text" id="auth-code-input"
+                        class="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-soft-amber"
+                        placeholder="Paste code...">
+                    <button id="submit-auth-code"
+                        class="bg-soft-amber/20 text-soft-amber border border-soft-amber/30 px-4 py-2 rounded-lg text-sm hover:bg-soft-amber/30 transition">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Application Logic -->
+    <script>
+        const API_BASE = '/api';
+
+        let localTasks = [];
+
+        // --- DOM Elements ---
+        const authStatusEl = document.getElementById('auth-status');
+        const authModal = document.getElementById('auth-modal');
+        const authLink = document.getElementById('auth-link');
+        const authCodeInput = document.getElementById('auth-code-input');
+        const submitAuthCodeBtn = document.getElementById('submit-auth-code');
+        const zenToggle = document.getElementById('zen-toggle');
+
+        // --- Context Theme Handling ---
+        const contextProfBtn = document.getElementById('context-professional');
+        const contextPersBtn = document.getElementById('context-personal');
+        // --- Agent Alpha (Temporal Logic) ---
+        function getAutoContext() {
+            const now = new Date();
+            const day = now.getDay();
+            const hour = now.getHours();
+            if (day === 0 || day === 6 || hour >= 18 || hour < 8) {
+                return 'personal';
+            }
+            return 'professional';
+        }
+        let currentContext = getAutoContext(); // dynamic default state
+
+        function updateContextTheme(context, isInitialLoad = false) {
+            if (currentContext === context && !isInitialLoad) return;
+            currentContext = context;
+
+            // Smooth data transition
+            if (mainLayout && !isInitialLoad) {
+                mainLayout.style.opacity = '0.3';
+                mainLayout.style.transform = 'scale(0.99)';
+                setTimeout(() => {
+                    // Hard clear the DOM arrays so they physically wipe out before the refetch completes
+                    localTasks = [];
+                    globalCalendarEvents = [];
+                    document.getElementById('inbox-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+                    document.getElementById('list-doing').innerHTML = '';
+                    document.getElementById('list-todo').innerHTML = '';
+                    document.getElementById('trips-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+                    document.getElementById('rituals-container').innerHTML = '<div class="text-sm text-white/40 italic">Syncing context...</div>';
+
+                    loadDashboardData();
+                    setTimeout(() => {
+                        mainLayout.style.opacity = '1';
+                        mainLayout.style.transform = 'scale(1)';
+                    }, 100);
+                }, 400);
+            }
+
+            if (context === 'personal') {
+                document.body.classList.add('theme-personal');
+
+                // Active state styling for Personal
+                contextPersBtn.classList.add('bg-white/10', 'text-white/90');
+                contextPersBtn.classList.remove('text-white/40', 'hover:text-white/70');
+
+                // Inactive state styling for Professional
+                contextProfBtn.classList.remove('bg-white/10', 'text-white/90');
+                contextProfBtn.classList.add('text-white/40', 'hover:text-white/70');
+            } else {
+                document.body.classList.remove('theme-personal');
+
+                // Active state styling for Professional
+                contextProfBtn.classList.add('bg-white/10', 'text-white/90');
+                contextProfBtn.classList.remove('text-white/40', 'hover:text-white/70');
+
+                // Inactive state styling for Personal
+                contextPersBtn.classList.remove('bg-white/10', 'text-white/90');
+                contextPersBtn.classList.add('text-white/40', 'hover:text-white/70');
+            }
+        }
+
+        contextProfBtn.addEventListener('click', () => updateContextTheme('professional'));
+        contextPersBtn.addEventListener('click', () => updateContextTheme('personal'));
+
+        // --- Zen Mode Handle ---
+        let isZenMode = false;
+        const mainLayout = document.getElementById('main-layout');
+        const zenLayout = document.getElementById('zen-layout');
+        const zenTaskDisplay = document.getElementById('zen-task-display');
+        let currentZenTaskId = null;
+
+        function updateZenDisplay() {
+            const doingTasks = localTasks.filter(t => t.status === 'doing');
+            if (doingTasks.length > 0) {
+                zenTaskDisplay.textContent = doingTasks[0].title;
+                currentZenTaskId = doingTasks[0].id;
+                document.getElementById('zen-complete-btn').classList.remove('hidden');
+            } else {
+                zenTaskDisplay.textContent = "Breathe. You have no active focus.";
+                currentZenTaskId = null;
+                document.getElementById('zen-complete-btn').classList.add('hidden');
+            }
+        }
+
+        zenToggle.addEventListener('click', () => {
+            isZenMode = !isZenMode;
+            if (isZenMode) {
+                document.body.classList.add('zen-active');
+
+                mainLayout.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+                mainLayout.classList.remove('opacity-100', 'scale-100');
+
+                zenLayout.classList.remove('hidden');
+                updateZenDisplay();
+                // small delay for transition trigger
+                setTimeout(() => zenLayout.classList.add('opacity-100'), 50);
+
+                zenToggle.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Exit Zen</span>`;
+            } else {
+                document.body.classList.remove('zen-active');
+
+                zenLayout.classList.remove('opacity-100');
+                setTimeout(() => {
+                    zenLayout.classList.add('hidden');
+                    mainLayout.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+                    mainLayout.classList.add('opacity-100', 'scale-100');
+                }, 700);
+
+                zenToggle.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    <span>Enter Zen Mode</span>`;
+            }
+        });
+
+        document.getElementById('zen-complete-btn').addEventListener('click', () => {
+            if (currentZenTaskId) {
+                const task = localTasks.find(t => t.id === currentZenTaskId);
+                if (task) {
+                    task.status = 'done';
+                    saveTasks();
+                    renderTasks();
+                    updateZenDisplay();
+                }
+            }
+        });
+        // --- AbortController for Context Switching Race Conditions ---
+        let activeControllers = {};
+        function getSignal(key) {
+            if (activeControllers[key]) activeControllers[key].abort();
+            activeControllers[key] = new AbortController();
+            return activeControllers[key].signal;
+        }
+
+        // --- Authentication Flow ---
+        async function checkAuthAndFetch(endpoint, containerId, renderFn) {
+            try {
+                const signal = getSignal(endpoint);
+                const res = await fetch(`${API_BASE}/${endpoint}?context=${currentContext}`, { signal });
+                const data = await res.json();
+
+                if (data.requiresAuth) {
+                    showAuthModal();
+                    return;
+                }
+
+                if (data.error) throw new Error(data.error);
+
+                authStatusEl.textContent = '● Google Connected';
+                authStatusEl.className = 'text-sm font-medium px-4 py-2 rounded-full glass border-green-500/30 text-green-400 hide-in-zen cursor-default';
+                authStatusEl.onclick = null;
+
+                renderFn(data, document.getElementById(containerId));
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error(`Failed fetching ${endpoint}:`, err);
+                document.getElementById(containerId).innerHTML = `<div class="text-red-400 text-sm p-4 bg-red-500/10 rounded-lg border border-red-500/20">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function showAuthModal() {
+            authModal.classList.remove('hidden');
+            try {
+                const res = await fetch(`${API_BASE}/auth/url`);
+                const data = await res.json();
+                if (res.ok && data.url) {
+                    authLink.href = data.url;
+                    authLink.textContent = "Authorize with Google";
+                    authLink.classList.remove('pointer-events-none', 'opacity-50');
+                } else {
+                    authLink.href = "#";
+                    authLink.textContent = "Missing credentials.json";
+                    authLink.classList.add('pointer-events-none', 'opacity-50');
+                    if (!document.getElementById('auth-error-msg')) {
+                        const err = document.createElement('p');
+                        err.id = 'auth-error-msg';
+                        err.className = 'text-xs text-red-400 mb-4 px-4';
+                        err.textContent = `Error: ${data.error || 'Failed to load Auth URL.'} Please place your Google Cloud credentials.json in the project root.`;
+                        authLink.parentNode.insertBefore(err, authLink);
+                    }
+                }
+            } catch (err) {
+                console.error('Auth URL Fetch Error:', err);
+                authLink.textContent = "Backend Offline";
+            }
+        }
+
+        submitAuthCodeBtn.addEventListener('click', async () => {
+            const code = authCodeInput.value.trim();
+            if (!code) return;
+
+            try {
+                submitAuthCodeBtn.textContent = 'Verifying...';
+                submitAuthCodeBtn.disabled = true;
+                const res = await fetch(`${API_BASE}/auth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    authModal.classList.add('hidden');
+                    loadDashboardData(); // Reload everything
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                alert('Authentication failed: ' + err.message);
+            } finally {
+                submitAuthCodeBtn.textContent = 'Submit';
+                submitAuthCodeBtn.disabled = false;
+            }
+        });
+
+        // --- Render Functions ---
+        function renderCalendar(events, container) {
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="text-sm text-white/50 p-4">No events in the upcoming 30 days.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            // Group by day roughly
+            events.forEach(event => {
+                const date = new Date(event.start);
+                const isToday = new Date().toDateString() === date.toDateString();
+
+                const timeStr = event.start.includes('T') ?
+                    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All Day';
+
+                const el = document.createElement('div');
+                el.className = `p-3 rounded-lg border ${isToday ? 'bg-blue-500/10 border-blue-500/30' : 'glass border-white/5'} flex justify-between items-start cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors`;
+                el.draggable = true;
+                el.addEventListener('dragstart', (e) => {
+                    el.style.opacity = '0.5';
+                    e.dataTransfer.setData('text/plain', 'NEW_TASK:' + (event.summary || 'Busy'));
+                });
+                el.addEventListener('dragend', () => el.style.opacity = '1');
+                el.innerHTML = `
+                    <div>
+                        <p class="font-medium text-sm text-white/90 leading-tight mb-1">${event.summary || 'Busy'}</p>
+                        <p class="text-xs ${isToday ? 'text-blue-300' : 'text-white/50'}">${timeStr} • ${date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderInbox(messages, container) {
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `
+                    <div class="h-32 flex flex-col items-center justify-center text-white/40 space-y-3 animate-fade-in">
+                        <svg class="w-8 h-8 text-green-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-[10px] tracking-[0.2em] font-medium uppercase">All clear.</span>
+                    </div>
+                `;
+                return;
+            }
+            container.innerHTML = messages.map(msg => {
+                const title = (msg.subject || 'Email').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                return `
+                <div class="inbox-item w-full p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
+                     draggable="true" 
+                     data-subject="${title}"
+                     data-id="${msg.id}"
+                     ontouchstart="this.classList.add('is-dragging');"
+                     ontouchend="this.classList.remove('is-dragging');"
+                     ontouchcancel="this.classList.remove('is-dragging');"
+                     ondragstart="this.classList.add('is-dragging'); event.dataTransfer.setData('text/plain', 'NEW_TASK:' + '${title}');"
+                     ondragend="this.classList.remove('is-dragging');">
+                    <p class="text-xs font-semibold text-white/70 truncate mb-1">${msg.from}</p>
+                    <p class="text-sm font-medium text-white/90 truncate">${msg.subject}</p>
+                </div>
+            `}).join('');
+        }
+
+        function renderTrips(groupedTrips, container) {
+            if (!groupedTrips || groupedTrips.length === 0) {
+                container.innerHTML = '<div class="text-sm text-white/50 p-4">No upcoming bookings found.</div>';
+                return;
+            }
+            container.innerHTML = groupedTrips.map((group, index) => {
+                // Determine broad dates
+                const dateRange = (group.StartDate && group.EndDate && group.StartDate !== group.EndDate)
+                    ? `${group.StartDate} - ${group.EndDate}`
+                    : group.StartDate;
+
+                const componentsHtml = (group.Components || []).map(comp => {
+                    const isHotel = comp.Type.toLowerCase().includes('hotel');
+                    const isTrain = comp.Type.toLowerCase().includes('train');
+                    const textClass = isHotel ? 'text-teal-300' : (isTrain ? 'text-indigo-300' : 'text-emerald-300');
+                    const icon = isHotel ? '🏨' : (isTrain ? '🚆' : '✈️');
+
+                    return `
+                        <div class="mt-2 p-2 bg-white/5 rounded flex justify-between items-center group/comp">
+                            <div>
+                                <p class="text-xs font-semibold ${textClass} mb-0.5">${icon} ${comp.Title}</p>
+                                <p class="text-[10px] text-white/50 uppercase tracking-widest">${comp.DateTime || 'TBA'}</p>
+                            </div>
+                            <div class="text-[10px] text-white/40 font-mono tracking-wider opacity-0 group-hover/comp:opacity-100 transition-opacity">
+                                Ref: ${comp.ConfirmationCode || 'N/A'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                <div class="trip-accordion glass bg-white/5 border border-white/10 rounded-xl mb-3 overflow-hidden cursor-pointer hover:bg-white/10 transition-colors">
+                    <!-- Header -->
+                    <div class="p-4 flex justify-between items-center select-none">
+                        <div>
+                            <p class="text-sm font-bold text-white/90 mb-0.5 flex items-center">
+                                🗺️ ${group.TripName}
+                                <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium">${group.Components?.length || 0} items</span>
+                            </p>
+                            <p class="text-xs text-soft-amber font-medium">${dateRange}</p>
+                        </div>
+                        <svg class="trip-chevron w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    <!-- Details / Components -->
+                    <div class="trip-accordion-content border-t border-white/5">
+                        <div class="p-3 pt-1">
+                            ${componentsHtml}
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // --- Kanban Logic ---
+        async function loadTasks() {
+            try {
+                const signal = getSignal('tasks');
+                const res = await fetch(`${API_BASE}/tasks?context=${currentContext}`, { signal });
+                localTasks = await res.json();
+                renderTasks();
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error("Failed loading tasks", err);
+            }
+        }
+
+        function saveTasks() {
+            fetch(`${API_BASE}/tasks?context=${currentContext}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(localTasks)
+            }).catch(console.error);
+        }
+
+        function renderTasks() {
+            const todoList = document.getElementById('list-todo');
+            const doingList = document.getElementById('list-doing');
+
+            // Keep the "drag tasks here" placeholder if empty
+            todoList.innerHTML = localTasks.filter(t => t.status === 'todo').length === 0 ? '<div class="text-sm text-white/30 italic text-center py-4">Drag tasks here</div>' : '';
+            doingList.innerHTML = localTasks.filter(t => t.status === 'doing').length === 0 ? '<div class="text-sm text-white/30 italic text-center py-4">Drag tasks here</div>' : '';
+
+            localTasks.forEach(task => {
+                if (task.status === 'done') return; // Don't render done tasks in this minimal view
+
+                const el = document.createElement('div');
+                el.className = `task-item p-3 rounded-lg border border-white/10 ${task.status === 'doing' ? 'bg-soft-amber/10 border-soft-amber/30' : 'bg-white/5'}`;
+                el.draggable = true;
+                el.dataset.id = task.id;
+
+                // Content
+                const timeBadge = task.scheduledTime ? `<div class="mt-2 text-xs font-medium text-blue-300 bg-blue-500/10 inline-block px-2 py-0.5 rounded border border-blue-500/20">📅 ${new Date(task.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${task.scheduledReasoning}</div>` : '';
+                const loadingBadge = task.isScheduling ? `<div class="mt-2 text-xs font-medium text-soft-amber animate-pulse">✨ AI is finding a time...</div>` : '';
+
+                el.innerHTML = `
+                    <div class="flex items-start">
+                        <input type="checkbox" class="task-checkbox mt-1 mr-3 w-4 h-4 rounded border-gray-600 bg-gray-700 text-soft-amber focus:ring-soft-amber/50 cursor-pointer" data-id="${task.id}">
+                        <div class="flex-grow">
+                            <p class="text-sm text-white/90 leading-snug">${task.title}</p>
+                            ${loadingBadge}
+                            ${timeBadge}
+                        </div>
+                    </div>
+                `;
+
+                // Hover tracking for "X" auto-schedule
+                el.addEventListener('mouseenter', () => hoveredTaskId = task.id);
+                el.addEventListener('mouseleave', () => hoveredTaskId = null);
+
+                // Drag Events
+                el.addEventListener('dragstart', (e) => {
+                    el.classList.add('dragging', 'is-dragging');
+                    e.dataTransfer.setData('text/plain', task.id);
+                });
+                el.addEventListener('dragend', () => el.classList.remove('dragging', 'is-dragging'));
+
+                // Explicit Touch events for Mobile Polyfill Haptics
+                el.addEventListener('touchstart', () => el.classList.add('is-dragging'), { passive: true });
+                el.addEventListener('touchend', () => el.classList.remove('is-dragging'), { passive: true });
+                el.addEventListener('touchcancel', () => el.classList.remove('is-dragging'), { passive: true });
+
+                // Checkbox event (Mark Done)
+                const cb = el.querySelector('.task-checkbox');
+                cb.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        el.style.opacity = '0.5';
+                        el.style.textDecoration = 'line-through';
+                        setTimeout(() => {
+                            const t = localTasks.find(t => t.id === task.id);
+                            if (t) t.status = 'done';
+                            saveTasks();
+                            renderTasks();
+                        }, 500);
+                    }
+                });
+
+                if (task.status === 'todo') todoList.appendChild(el);
+                if (task.status === 'doing') doingList.appendChild(el);
+            });
+        }
+
+        // Set up Drag and Drop Zones
+        document.querySelectorAll('.kanban-dropzone').forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const dragData = e.dataTransfer.getData('text/plain');
+                const newStatus = zone.dataset.status;
+
+                // Handle Dropped External Item (Email or Calendar Event)
+                if (dragData.startsWith('NEW_TASK:')) {
+                    const title = dragData.substring(9);
+                    localTasks.push({ id: Date.now().toString(), title, status: newStatus });
+                    saveTasks();
+                    renderTasks();
+                    return;
+                }
+
+                // Handle Existing Kanban Task Move
+                const task = localTasks.find(t => t.id === dragData);
+                if (task && task.status !== newStatus) {
+                    task.status = newStatus;
+                    saveTasks();
+                    renderTasks();
+                    if (newStatus === 'doing' && isZenMode) updateZenDisplay();
+                }
+            });
+        });
+
+        // Quick Add Task Form
+        const quickAddForm = document.getElementById('quick-add-form');
+        const quickAddInput = document.getElementById('quick-add-input');
+        if (quickAddForm && quickAddInput) {
+            quickAddForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = quickAddInput.value.trim();
+                if (title) {
+                    localTasks.push({ id: Date.now().toString(), title, status: 'todo' });
+                    saveTasks();
+                    renderTasks();
+                    quickAddInput.value = '';
+                }
+            });
+        }
+
+        // --- Sunsama Global Hotkeys (A = Add Task, X = Auto-Schedule) ---
+        let hoveredTaskId = null;
+        let globalCalendarEvents = []; // Cache for AI scheduler
+
+        document.addEventListener('keydown', async (e) => {
+            // Ignore if typing in an input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // 'A' to Quick Add
+            if (e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                quickAddInput.focus();
+            }
+
+            // 'X' to Auto-Schedule hovered task
+            if (e.key.toLowerCase() === 'x' && hoveredTaskId) {
+                e.preventDefault();
+                const task = localTasks.find(t => t.id === hoveredTaskId);
+                if (task && !task.isScheduling) {
+                    task.isScheduling = true;
+                    renderTasks(); // Show loading state
+
+                    try {
+                        const res = await fetch(`${API_BASE}/ai/schedule`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                taskTitle: task.title,
+                                calendarEvents: globalCalendarEvents
+                            })
+                        });
+
+                        const suggestion = await res.json();
+                        if (suggestion.error) throw new Error(suggestion.error);
+
+                        task.scheduledTime = suggestion.recommendedTime;
+                        task.scheduledReasoning = suggestion.reasoning;
+                    } catch (err) {
+                        console.error('AI Auto-Schedule failed:', err);
+                        alert('Could not auto-schedule: ' + err.message);
+                    } finally {
+                        task.isScheduling = false;
+                        saveTasks();
+                        renderTasks();
+                    }
+                }
+            }
+        });
+
+        // --- Phase 28 & 29 Data Loaders (Rituals & Notes) ---
+        async function loadRituals() {
+            try {
+                const signal = getSignal('rituals');
+                const res = await fetch(`${API_BASE}/rituals`, { signal });
+                if (!res.ok) throw new Error('Failed to fetch rituals');
+                const rituals = await res.json();
+
+                const container = document.getElementById('rituals-container');
+                container.innerHTML = '';
+
+                const allCompleted = rituals.length > 0 && rituals.every(r => r.completed);
+                if (rituals.length === 0 || allCompleted) {
+                    container.innerHTML = `
+                        <div class="h-24 flex flex-col items-center justify-center text-white/40 space-y-2 animate-fade-in">
+                            <svg class="w-6 h-6 text-green-400/50 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-[10px] tracking-[0.2em] font-medium uppercase">All clear.</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                rituals.forEach(ritual => {
+                    const el = document.createElement('label');
+                    el.className = `flex items-center space-x-3 p-2 rounded-lg transition-colors cursor-pointer hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
+                    el.innerHTML = `
+                        <input type="checkbox" class="form-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
+                               ${ritual.completed ? 'checked' : ''} onchange="toggleRitual('${ritual.id}', this.checked)">
+                        <span class="text-sm text-white/90 ${ritual.completed ? 'line-through text-white/50' : ''}">${ritual.title}</span>
+                    `;
+                    container.appendChild(el);
+                });
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error("Rituals load error:", err);
+            }
+        }
+
+        async function toggleRitual(id, completed) {
+            try {
+                await fetch(`${API_BASE}/rituals/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed })
+                });
+                loadRituals(); // Reload to refresh visually and safely
+            } catch (err) {
+                console.error("Rituals toggle error:", err);
+            }
+        }
+
+        async function loadNotes() {
+            try {
+                const signal = getSignal('notes');
+                const res = await fetch(`${API_BASE}/notes?context=${currentContext}`, { signal });
+                const data = await res.json();
+                if (data && data.content !== undefined) {
+                    document.getElementById('quick-notes-area').value = data.content;
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error("Notes load error:", err);
+            }
+        }
+
+        // Auto-Save Notes (Debounced)
+        const notesArea = document.getElementById('quick-notes-area');
+        const saveStatus = document.getElementById('notes-save-status');
+        let notesTimeout;
+
+        if (notesArea) {
+            notesArea.addEventListener('input', () => {
+                clearTimeout(notesTimeout);
+                saveStatus.classList.remove('opacity-100'); // Hide saved status
+                notesTimeout = setTimeout(async () => {
+                    try {
+                        const content = notesArea.value;
+                        await fetch(`${API_BASE}/notes?context=${currentContext}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content })
+                        });
+                        saveStatus.classList.add('opacity-100'); // Show saved status
+                        setTimeout(() => saveStatus.classList.remove('opacity-100'), 2000);
+                    } catch (err) { console.error("Notes save error:", err); }
+                }, 1000); // Save 1s after last keystroke
+            });
+        }
+
+        // --- Flow State Timer Logic ---
+        let flowTimer = null;
+        let flowTimeAccumulated = 0; // tracking accumulated time in ms when paused
+        let flowStartTime = null;
+        let isFlowActive = false;
+
+        function getFlowTimeSeconds() {
+            if (isFlowActive) {
+                return Math.floor((flowTimeAccumulated + (Date.now() - flowStartTime)) / 1000);
+            }
+            return Math.floor(flowTimeAccumulated / 1000);
+        }
+
+        const flowDisplay = document.getElementById('flow-display');
+        const flowToggle = document.getElementById('flow-toggle');
+        const flowReset = document.getElementById('flow-reset');
+        const pomodoroStats = document.getElementById('pomodoro-stats'); // Keeping ID same for backend reuse
+
+        async function fetchPomodoroStats() {
+            try {
+                const signal = getSignal('pomodoros');
+                const res = await fetch(`${API_BASE}/pomodoros/stats`, { signal });
+                const data = await res.json();
+
+                // Update Today Text
+                const todayHours = Math.floor((data.today || 0) / 60);
+                const todayMins = (data.today || 0) % 60;
+                if (todayHours > 0) {
+                    pomodoroStats.textContent = `${todayHours}h ${todayMins}m TODAY`;
+                } else {
+                    pomodoroStats.textContent = `${todayMins}m TODAY`;
+                }
+
+                // Render Heatmap Bars
+                const heatmapContainer = document.getElementById('focus-heatmap-container');
+                if (heatmapContainer && data.heatmap) {
+                    heatmapContainer.innerHTML = '';
+                    const MAX_EXPECTED_MINS = 240; // 4 hours cap for 100% bar height
+
+                    data.heatmap.forEach((dayData, index) => {
+                        const dayName = new Date(dayData.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
+                        const intensity = Math.min((dayData.minutes / MAX_EXPECTED_MINS) * 100, 100);
+
+                        // Height constraint & baseline visibility
+                        const barHeightClass = intensity > 0 ? `h-[${intensity}%]` : 'h-1';
+
+                        const el = document.createElement('div');
+                        el.className = "flex flex-col items-center justify-end w-full h-full group relative cursor-pointer";
+
+                        // Tooltip
+                        const hrs = Math.floor(dayData.minutes / 60);
+                        const mins = dayData.minutes % 60;
+                        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+                        el.innerHTML = `
+                            <div class="absolute -top-8 bg-charcoal border border-white/10 text-white/90 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                                ${new Date(dayData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${timeStr}
+                            </div>
+                            <div class="w-full bg-soft-amber transition-all duration-500 rounded-t-sm ${dayData.minutes > 0 ? 'opacity-80 group-hover:opacity-100' : 'opacity-20'}" 
+                                 style="height: ${Math.max(intensity, 5)}%"></div>
+                            <span class="text-[9px] text-white/30 mt-1 uppercase font-medium">${dayName}</span>
+                        `;
+                        heatmapContainer.appendChild(el);
+                    });
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error("Failed to fetch focus stats", err);
+            }
+        }
+
+        function updateFlowDisplay() {
+            const flowText = document.getElementById('zen-flow-text');
+            if (!isFlowActive) {
+                flowDisplay.textContent = "";
+                if (flowText) flowText.classList.add('hidden');
+                return;
+            } else {
+                if (flowText) flowText.classList.remove('hidden');
+            }
+
+            const totalSeconds = getFlowTimeSeconds();
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            flowDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Update document title for background tracking
+            if (isFlowActive) {
+                document.title = `[${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}] Flow State`;
+            } else {
+                document.title = "Personal OS v2.0";
+            }
+        }
+
+        async function flowComplete() {
+            // Log session if significant time passed (e.g. >= 1 minute)
+            const totalSeconds = getFlowTimeSeconds();
+            if (totalSeconds >= 60) {
+                const minutesFocused = Math.floor(totalSeconds / 60);
+                try {
+                    await fetch(`${API_BASE}/pomodoros`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ duration_minutes: minutesFocused })
+                    });
+                    fetchPomodoroStats();
+                } catch (err) {
+                    console.error("Failed to log flow session", err);
+                }
+            }
+        }
+
+        function toggleFlowState() {
+            if (isFlowActive) {
+                // Pause
+                clearInterval(flowTimer);
+                flowTimeAccumulated += (Date.now() - flowStartTime);
+                isFlowActive = false;
+                flowComplete(); // Log time on pause
+                flowToggle.textContent = 'Resume Flow';
+                flowToggle.classList.remove('bg-white/20');
+                flowToggle.classList.add('glass');
+                document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
+                updateFlowDisplay();
+            } else {
+                // Start
+                isFlowActive = true;
+                flowStartTime = Date.now();
+                flowToggle.textContent = 'Pause Flow';
+                flowToggle.classList.remove('glass');
+                flowToggle.classList.add('bg-white/20');
+                document.querySelector('.breathing-circle').style.animationPlayState = 'running';
+                updateFlowDisplay();
+
+                flowTimer = setInterval(() => {
+                    updateFlowDisplay();
+                }, 1000);
+            }
+        }
+
+        flowToggle.addEventListener('click', toggleFlowState);
+        flowReset.addEventListener('click', () => {
+            clearInterval(flowTimer);
+            if (isFlowActive) {
+                flowComplete(); // log remaining time
+            }
+            isFlowActive = false;
+            flowTimeAccumulated = 0;
+            flowStartTime = null;
+            updateFlowDisplay();
+            flowToggle.textContent = 'Enter Flow';
+            flowToggle.classList.remove('bg-white/20');
+            flowToggle.classList.add('glass');
+            document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
+        });
+
+        // Pause animation by default
+        document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
+
+        // --- Initialization & Background Sync ---
+        function loadDashboardData() {
+            loadTasks();
+            loadRituals();
+            loadNotes();
+            fetchPomodoroStats();
+            fetchGoogleData();
+        }
+
+        function fetchGoogleData() {
+            // Re-fetch calendar events
+            checkAuthAndFetch('calendar', 'calendar-container', (data, container) => {
+                globalCalendarEvents = data;
+                renderCalendar(data, container);
+            });
+
+            // Re-fetch unread emails
+            if (currentContext === 'professional') {
+                document.getElementById('inbox-container').innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center space-y-3 p-4 text-center animate-fade-in">
+                        <svg class="w-8 h-8 text-blue-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                        </svg>
+                        <div>
+                            <p class="text-[11px] font-semibold text-white/70 tracking-wider uppercase mb-1">Office 365</p>
+                            <p class="text-xs text-white/50 leading-relaxed max-w-[200px] mx-auto">Connect <span class="text-white/70">sabrina.carmona@supercell.com</span> to sync your work inbox.</p>
+                        </div>
+                        <button class="mt-2 text-[10px] font-semibold tracking-wider text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-2 rounded-full transition-colors uppercase border border-blue-500/20" id="office365-btn">Connect Account</button>
+                    </div>
+                `;
+            } else {
+                checkAuthAndFetch('inbox', 'inbox-container', renderInbox);
+            }
+
+            // Intelligent Trips loading with auto-retry
+            let tripAttempts = 0;
+            let tripInterval;
+
+            function fetchTripsLogic() {
+                checkAuthAndFetch('trips', 'trips-container', (data, container) => {
+                    renderTrips(data, container);
+                    if (data && data.length > 0) {
+                        if (tripInterval) clearInterval(tripInterval);
+                    } else if (tripAttempts < 5) {
+                        tripAttempts++;
+                        container.innerHTML = '<div class="text-sm text-white/40 italic p-4 relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>Parsing travel data...</div>';
+                    } else {
+                        if (tripInterval) clearInterval(tripInterval);
+                    }
+                });
+            }
+
+            fetchTripsLogic(); // Initial fetch
+            tripInterval = setInterval(fetchTripsLogic, 4000);
+
+            // Flash the auth pill briefly to indicate a background sync occurred
+            if (authStatusEl.textContent.includes('Connected')) {
+                authStatusEl.classList.add('bg-green-500/20');
+                setTimeout(() => authStatusEl.classList.remove('bg-green-500/20'), 1000);
+            }
+
+            // Update Last Synced timestamp
+            const now = new Date();
+            const syncTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('hud-last-sync').textContent = `SYNCED: ${syncTime}`;
+        }
+
+        // --- Context HUD (Time & Weather) ---
+        function updateHUDClock() {
+            const now = new Date();
+            const dateEl = document.getElementById('hud-date');
+            const timeEl = document.getElementById('hud-time');
+
+            // Format: "Wed 11 Mar"
+            dateEl.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+            // Format: "14:05" (24-hour)
+            timeEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function fetchHUDWeather() {
+            const weatherEl = document.getElementById('hud-weather');
+            try {
+                // Fetch London weather
+                const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&current=temperature_2m,weather_code');
+                const data = await response.json();
+
+                const temp = Math.round(data.current.temperature_2m);
+                const code = data.current.weather_code;
+
+                let emoji = '🌤️';
+                if (code === 0) emoji = '☀️';
+                else if (code >= 1 && code <= 3) emoji = '☁️';
+                else if (code >= 45 && code <= 48) emoji = '🌫️';
+                else if (code >= 51 && code <= 67) emoji = '🌧️';
+                else if (code >= 71 && code <= 77) emoji = '❄️';
+                else if (code >= 80 && code <= 82) emoji = '🌦️';
+                else if (code >= 95) emoji = '⚡';
+
+                weatherEl.innerHTML = `${emoji} ${temp}&deg;C`;
+            } catch (err) {
+                console.error("Failed to fetch weather", err);
+                weatherEl.textContent = '--°C';
+            }
+        }
+
+        // Start App on Initial Load
+        updateContextTheme(currentContext, true); // Initialize context buttons visually
+        loadDashboardData();
+        updateHUDClock();
+        fetchHUDWeather();
+        setInterval(updateHUDClock, 1000); // Tick clock every second
+        setInterval(fetchHUDWeather, 15 * 60 * 1000); // Fetch weather every 15 mins
+
+        // Start Background Polling (Every 60 seconds)
+        // Fixed: Use Visibility API to prevent strict 60s jitter when tab is hidden
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible') {
+                fetchGoogleData();
+            }
+        });
+
+        // Slower fallback poll (5 mins) instead of aggressive 60s
+        setInterval(fetchGoogleData, 300000);
+
+        // --- MailCraft Agent Logic ---
+        const TONES = ['professional', 'warm', 'concise', 'friendly', 'formal', 'persuasive', 'apologetic', 'grateful'];
+        let activeMailCraftTone = 'professional';
+        let mailCraftAbortController = null;
+
+        function renderMailCraftTones() {
+            const container = document.getElementById('mailcraft-tones-container');
+            container.innerHTML = TONES.map(tone => {
+                const isActive = tone === activeMailCraftTone;
+                // Add deeper background and whiter text for unselected state to improve legibility
+                const activeStyle = isActive
+                    ? `background: var(--accent-text); color: #ffffff; border-color: var(--accent-text); text-shadow: 0 1px 2px rgba(0,0,0,0.2); opacity: 1;`
+                    : `border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.3); opacity: 1;`;
+                return `
+                    <button data-tone="${tone}" 
+                            class="mailcraft-tone-btn glass-card text-[12px] capitalize min-h-[44px] flex items-center justify-center rounded-xl border transition-all duration-200 font-semibold tracking-wide hover:bg-white/10 focus:outline-none"
+                            style="${activeStyle}">
+                        ${tone}
+                    </button>
+                `;
+            }).join('');
+
+            document.getElementById('mailcraft-selected-tone-label').textContent = activeMailCraftTone.charAt(0).toUpperCase() + activeMailCraftTone.slice(1);
+        }
+
+        function setMailCraftTone(tone) {
+            activeMailCraftTone = tone;
+            renderMailCraftTones();
+        }
+
+        function openMailCraft(el) {
+            const subject = el.getAttribute('data-subject');
+            const messageId = el.getAttribute('data-id');
+            document.getElementById('mailcraft-reply-context').value = subject;
+            document.getElementById('mailcraft-reply-message-id').value = messageId || '';
+            document.getElementById('mailcraft-context-label').innerHTML = `REPLYING TO: <span class="font-bold text-white normal-case ml-2 text-[11px]">${subject}</span>`;
+
+            // Toggle Panes Dynamically
+            document.getElementById('quick-notes-panel').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('quick-notes-panel').classList.remove('opacity-100', 'pointer-events-auto');
+            document.getElementById('quick-notes-panel').style.zIndex = '0';
+
+            document.getElementById('mailcraft-panel').classList.add('opacity-100', 'pointer-events-auto');
+            document.getElementById('mailcraft-panel').classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('mailcraft-panel').style.zIndex = '10';
+
+            // Reset Output and Buttons
+            document.getElementById('mailcraft-send-btn').style.display = 'flex';
+            document.getElementById('mailcraft-send-btn').disabled = false;
+            document.getElementById('mailcraft-send-btn').innerHTML = `Send <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>`;
+
+            renderMailCraftTones();
+        }
+
+        function closeMailCraft() {
+            if (mailCraftAbortController) {
+                mailCraftAbortController.abort();
+            }
+
+            document.getElementById('mailcraft-panel').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('mailcraft-panel').classList.remove('opacity-100', 'pointer-events-auto');
+            document.getElementById('mailcraft-panel').style.zIndex = '0';
+
+            document.getElementById('quick-notes-panel').classList.add('opacity-100', 'pointer-events-auto');
+            document.getElementById('quick-notes-panel').classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('quick-notes-panel').style.zIndex = '10';
+
+            // Cleanup
+            document.getElementById('mailcraft-draft-text').value = '';
+            document.getElementById('mailcraft-output-container').classList.add('hidden');
+            document.getElementById('mailcraft-output-text').textContent = '';
+        }
+
+        async function generateMailCraft() {
+            const draftText = document.getElementById('mailcraft-draft-text').value.trim();
+            const replyContext = document.getElementById('mailcraft-reply-context').value;
+            const outputContainer = document.getElementById('mailcraft-output-container');
+            const outputText = document.getElementById('mailcraft-output-text');
+            const genBtn = document.getElementById('mailcraft-generate-btn');
+
+            if (!draftText) return alert("Please provide some rough thoughts first.");
+
+            // Garbage Collection (Agent Gamma requirement)
+            if (mailCraftAbortController) mailCraftAbortController.abort();
+            mailCraftAbortController = new AbortController();
+
+            outputContainer.classList.remove('hidden');
+            outputContainer.classList.add('flex');
+            outputText.textContent = '';
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<span class="animate-pulse">Writing...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/mailcraft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ draftText, tone: activeMailCraftTone, replyContext }),
+                    signal: mailCraftAbortController.signal
+                });
+
+                if (!response.ok) throw new Error("Failed to connect to backend stream");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let streamingText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataPayload = line.replace('data: ', '').trim();
+                            if (dataPayload === '[DONE]') break;
+                            try {
+                                const parsed = JSON.parse(dataPayload);
+                                if (parsed.error) throw new Error(parsed.error);
+                                if (parsed.text) {
+                                    streamingText += parsed.text;
+                                    outputText.textContent = streamingText;
+                                    // Auto scroll
+                                    outputText.scrollTop = outputText.scrollHeight;
+                                }
+                            } catch (e) {
+                                // Ignore parse errors for split chunks handled next read
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("MailCraft error:", err);
+                    outputText.textContent = `Error: ${err.message}`;
+                }
+            } finally {
+                genBtn.disabled = false;
+                genBtn.innerHTML = `Generate Draft <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
+            }
+        }
+
+        async function copyMailCraftOutput() {
+            const textToCopy = document.getElementById('mailcraft-output-text').textContent;
+            await navigator.clipboard.writeText(textToCopy);
+
+            const copyBtn = document.getElementById('mailcraft-copy-btn');
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = `Copied! <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            copyBtn.classList.add('text-green-400', 'bg-green-400/10');
+
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('text-green-400', 'bg-green-400/10');
+            }, 2000);
+        }
+
+        async function sendMailCraftReply() {
+            const messageId = document.getElementById('mailcraft-reply-message-id').value;
+            const draftText = document.getElementById('mailcraft-output-text').textContent;
+            const sendBtn = document.getElementById('mailcraft-send-btn');
+
+            if (!messageId || !draftText) {
+                alert("Missing draft content or original email ID.");
+                return;
+            }
+
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="animate-pulse">Sending...</span>';
+
+            try {
+                const res = await fetch(`${API_BASE}/mailcraft/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ replyToMessageId: messageId, payloadText: draftText })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    sendBtn.innerHTML = `Sent! <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                    setTimeout(() => {
+                        closeMailCraft();
+                        fetchGoogleData(); // Refresh the inbox
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || "Failed to send");
+                }
+            } catch (err) {
+                alert("Failed to send reply: " + err.message);
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `Send <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>`;
+            }
+        }
+
+
+        // --- Event Delegation for CSP Compliance ---
+        // Instead of inline onclick attributes which are blocked by Helmet, we use delegated listeners
+        document.addEventListener('click', (e) => {
+            // Handle Trip Accordion Toggle
+            const tripAccordion = e.target.closest('.trip-accordion');
+            if (tripAccordion) {
+                tripAccordion.classList.toggle('expanded');
+                return; // Stop processing
+            }
+
+            // Handle Inbox Item MailCraft Open
+            const inboxItem = e.target.closest('.inbox-item');
+            if (inboxItem) {
+                openMailCraft(inboxItem);
+                return;
+            }
+
+            // Handle MailCraft Dynamic Tones
+            const toneBtn = e.target.closest('.mailcraft-tone-btn');
+            if (toneBtn) {
+                setMailCraftTone(toneBtn.getAttribute('data-tone'));
+                return;
+            }
+
+            // Fixed Buttons via ID matching
+            const targetId = e.target.closest('button')?.id || e.target.id;
+            switch (targetId) {
+                case 'auth-status':
+                    showAuthModal();
+                    break;
+                case 'close-mailcraft-btn':
+                    closeMailCraft();
+                    break;
+                case 'mailcraft-generate-btn':
+                    generateMailCraft();
+                    break;
+                case 'mailcraft-copy-btn':
+                    copyMailCraftOutput();
+                    break;
+                case 'mailcraft-send-btn':
+                    sendMailCraftReply();
+                    break;
+                case 'office365-btn':
+                    alert('Office 365 integration coming soon!');
+                    break;
+            }
+        });
+
+    </script>
+</body>
+
+</html>
+</file>
+
+<file path="server.js">
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const fs = require('fs');
+const path = require('path');
+const { google } = require('googleapis');
+require('dotenv').config();
+const { GoogleGenAI } = require('@google/genai');
+
+// --- Caching and Database Dependencies ---
+const Database = require('better-sqlite3');
+const NodeCache = require('node-cache');
+const cron = require('node-cron');
+
+let ai = null;
+if (process.env.GEMINI_API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+} else {
+    console.warn("⚠️  GEMINI_API_KEY not found in environment. Auto-Scheduling AI features will be disabled.");
+}
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://bernardo-castilho.github.io"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https:"],
+        },
+    }
+}));
+app.use(cors({ origin: ['http://localhost:3000', process.env.RAILWAY_URL || ''] }));
+app.use(express.json());
+// Serve static frontend files
+app.use(express.static(path.join(__dirname)));
+
+const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.readonly'];
+const TOKEN_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/token.json' : path.join(__dirname, 'token.json');
+const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+
+// --- Initialization: Database ---
+const DB_PATH = process.env.RAILWAY_ENVIRONMENT ? '/data/database.db' : path.join(__dirname, 'database.db');
+
+// Ensure the directory exists before attempting to open the database
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+    console.log(`[Database] Directory not found. Creating: ${dbDir}`);
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(DB_PATH);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    status TEXT,
+    context_mode TEXT DEFAULT 'both'
+  );
+  CREATE TABLE IF NOT EXISTS rituals (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    completed INTEGER DEFAULT 0,
+    lastResetDate TEXT
+  );
+  CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT,
+    context_mode TEXT DEFAULT 'both'
+  );
+  CREATE TABLE IF NOT EXISTS pomodoros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    duration_minutes INTEGER,
+    completed_at TEXT,
+    task_id_optional TEXT
+  );
+  CREATE TABLE IF NOT EXISTS grouped_trips (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    context_mode TEXT,
+    trip_data TEXT,
+    last_updated TEXT
+  );
+`);
+
+// Safe migrations for older DB schemas on persistent volumes
+try { db.exec("ALTER TABLE tasks ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+try { db.exec("ALTER TABLE notes ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+try { db.exec("ALTER TABLE grouped_trips ADD COLUMN context_mode TEXT DEFAULT 'both'"); } catch (e) { }
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_tasks_status_context ON tasks(status, context_mode);
+  CREATE INDEX IF NOT EXISTS idx_pomodoros_date ON pomodoros(completed_at);
+  CREATE INDEX IF NOT EXISTS idx_rituals_lastResetDate ON rituals(lastResetDate);
+`);
+
+// --- Initialization: Cache ---
+// TTL is 300 seconds (5 minutes)
+const apiCache = new NodeCache({ stdTTL: 300 });
+
+// --- One-Time Flat File to SQLite Migration ---
+const TASKS_PATH = path.join(__dirname, 'tasks.json');
+const RITUALS_PATH = path.join(__dirname, 'rituals.json');
+const NOTES_PATH = path.join(__dirname, 'notes.json');
+
+if (fs.existsSync(TASKS_PATH)) {
+    try {
+        const tasks = JSON.parse(fs.readFileSync(TASKS_PATH, 'utf8'));
+        const insert = db.prepare('INSERT OR IGNORE INTO tasks (id, title, status) VALUES (@id, @title, @status)');
+        const insertMany = db.transaction((txs) => {
+            for (const t of txs) insert.run(t);
+        });
+        insertMany(tasks);
+        fs.unlinkSync(TASKS_PATH);
+        console.log("✅ Migrated tasks.json to SQLite and deleted file.");
+    } catch (err) { console.error("Tasks migration failed:", err); }
+}
+
+if (fs.existsSync(RITUALS_PATH)) {
+    try {
+        const rituals = JSON.parse(fs.readFileSync(RITUALS_PATH, 'utf8'));
+        const insert = db.prepare('INSERT OR IGNORE INTO rituals (id, title, completed, lastResetDate) VALUES (@id, @title, @completed, @lastResetDate)');
+        const insertMany = db.transaction((rits) => {
+            for (const r of rits) insert.run({ ...r, completed: r.completed ? 1 : 0 });
+        });
+        insertMany(rituals);
+        fs.unlinkSync(RITUALS_PATH);
+        console.log("✅ Migrated rituals.json to SQLite and deleted file.");
+    } catch (err) { console.error("Rituals migration failed:", err); }
+} else {
+    // Seed default rituals if table is empty
+    const count = db.prepare("SELECT COUNT(*) as count FROM rituals").get().count;
+    if (count === 0) {
+        const today = new Date().toDateString();
+        const stmt = db.prepare("INSERT INTO rituals (id, title, completed, lastResetDate) VALUES (?, ?, ?, ?)");
+        db.transaction(() => {
+            stmt.run("r1", "Drink a large glass of water", 0, today);
+            stmt.run("r2", "10 minute stretching session", 0, today);
+            stmt.run("r3", "Review Zenith Priority goals", 0, today);
+        })();
+    }
+}
+
+if (fs.existsSync(NOTES_PATH)) {
+    try {
+        const notes = JSON.parse(fs.readFileSync(NOTES_PATH, 'utf8'));
+        db.prepare('INSERT OR REPLACE INTO notes (id, content) VALUES (1, ?)').run(notes.content || "");
+        fs.unlinkSync(NOTES_PATH);
+        console.log("✅ Migrated notes.json to SQLite and deleted file.");
+    } catch (err) { console.error("Notes migration failed:", err); }
+}
+
+function getGoogleApiConfig() {
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+        return {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uris: [process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback']
+        };
+    }
+    if (process.env.GOOGLE_CREDENTIALS_JSON) {
+        const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+        return credentials.installed || credentials.web;
+    }
+    throw new Error('GOOGLE_CREDENTIALS_JSON environment variable is not set.');
+}
+
+// Helper wrapper to get OAuth2 Client
+async function getOAuth2Client() {
+    const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+    if (process.env.GOOGLE_TOKEN_JSON) {
+        oAuth2Client.setCredentials(JSON.parse(process.env.GOOGLE_TOKEN_JSON));
+        return oAuth2Client;
+    }
+    if (fs.existsSync(TOKEN_PATH)) {
+        const token = fs.readFileSync(TOKEN_PATH);
+        oAuth2Client.setCredentials(JSON.parse(token));
+        return oAuth2Client;
+    }
+    throw new Error('Not authenticated. Please authorize the app.');
+}
+
+// Generate Auth URL
+app.get('/api/auth/url', (req, res) => {
+    try {
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: SCOPES,
+        });
+        res.json({ url: authUrl });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Exchange Code for Token
+app.post('/api/auth/token', async (req, res) => {
+    const { code } = req.body;
+    try {
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+        const { tokens } = await oAuth2Client.getToken(code);
+        oAuth2Client.setCredentials(tokens);
+        fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Handle OAuth redirect from Google
+app.get('/oauth2callback', async (req, res) => {
+    const code = req.query.code;
+    if (!code) {
+        return res.send(`<h2>Authentication Failed</h2><p>No code returned.</p><a href="/">Return</a>`);
+    }
+    try {
+        const { client_secret, client_id, redirect_uris } = getGoogleApiConfig();
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+        const { tokens } = await oAuth2Client.getToken(code);
+        oAuth2Client.setCredentials(tokens);
+        fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+        console.log('Token stored via callback redirect');
+
+        // Redirect back to dashboard on success
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error in oauth2callback', err);
+        res.send(`<h2>Authentication Failed</h2><p>${err.message}</p><a href="/">Return</a>`);
+    }
+});
+
+// --- Tasks Endpoints (SQLite) ---
+app.get('/api/tasks', (req, res) => {
+    const context = req.query.context || 'both';
+    let tasks;
+    if (context === 'both') {
+        tasks = db.prepare('SELECT * FROM tasks').all();
+    } else {
+        tasks = db.prepare('SELECT * FROM tasks WHERE context_mode IN (?, "both")').all(context);
+    }
+    res.json(tasks);
+});
+
+app.post('/api/tasks', (req, res) => {
+    const tasks = req.body;
+    const context = req.query.context || 'both';
+    const insert = db.prepare('INSERT INTO tasks (id, title, status, context_mode) VALUES (@id, @title, @status, @context_mode)');
+
+    // Batch replace strategy to match frontend Kanban arrays
+    const transaction = db.transaction((txs) => {
+        if (context === 'both') {
+            db.prepare('DELETE FROM tasks').run();
+        } else {
+            db.prepare('DELETE FROM tasks WHERE context_mode = ?').run(context);
+        }
+        for (const t of txs) {
+            insert.run({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                context_mode: t.context_mode || context
+            });
+        }
+    });
+
+    transaction(tasks);
+    res.json({ success: true });
+});
+
+// --- Quick Notes Endpoints (SQLite) ---
+app.get('/api/notes', (req, res) => {
+    const context = req.query.context || 'both';
+    let note = db.prepare('SELECT content FROM notes WHERE context_mode = ?').get(context);
+    if (!note) {
+        db.prepare("INSERT INTO notes (content, context_mode) VALUES ('', ?)").run(context);
+        note = { content: "" };
+    }
+    res.json(note);
+});
+
+app.post('/api/notes', (req, res) => {
+    const { content } = req.body;
+    const context = req.query.context || 'both';
+
+    let note = db.prepare('SELECT id FROM notes WHERE context_mode = ?').get(context);
+    if (note) {
+        db.prepare('UPDATE notes SET content = ? WHERE id = ?').run(content || "", note.id);
+    } else {
+        db.prepare('INSERT INTO notes (content, context_mode) VALUES (?, ?)').run(content || "", context);
+    }
+    res.json({ success: true });
+});
+
+// --- Daily Rituals Endpoints (SQLite) ---
+app.get('/api/rituals', (req, res) => {
+    const today = new Date().toDateString();
+    const context = req.query.context || 'both';
+
+    try {
+        db.prepare('ALTER TABLE rituals ADD COLUMN context_mode TEXT DEFAULT "both"').run();
+    } catch (e) { /* Column already exists */ }
+
+    let rituals;
+    if (context === 'both') {
+        rituals = db.prepare('SELECT * FROM rituals').all();
+    } else {
+        rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
+    }
+
+    if (rituals.length > 0 && rituals[0].lastResetDate !== today) {
+        db.prepare('UPDATE rituals SET completed = 0, lastResetDate = ?').run(today);
+        if (context === 'both') {
+            rituals = db.prepare('SELECT * FROM rituals').all(); // Fetch updated
+        } else {
+            rituals = db.prepare('SELECT * FROM rituals WHERE context_mode IN (?, "both")').all(context);
+        }
+    }
+
+    res.json(rituals.map(r => ({ ...r, completed: r.completed === 1 })));
+});
+
+app.put('/api/rituals/:id', (req, res) => {
+    const { id } = req.params;
+    const { completed } = req.body;
+    db.prepare('UPDATE rituals SET completed = ? WHERE id = ?').run(completed ? 1 : 0, id);
+    res.json({ success: true });
+});
+
+// --- Calendar Endpoint (Cached) ---
+app.get('/api/calendar', async (req, res) => {
+    const context = req.query.context || 'both';
+    const cacheKey = `calendarData_${context}`;
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
+    try {
+        const auth = await getOAuth2Client();
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        // Next 30 days window
+        const timeMin = new Date();
+        const timeMax = new Date();
+        timeMax.setDate(timeMax.getDate() + 30);
+
+        let calendarIds = ['primary']; // Default fallback
+
+        if (context === 'professional') {
+            calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+        } else if (context === 'personal') {
+            calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+        } else {
+            // Context 'both' -> Combine both
+            const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+            const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+            calendarIds = Array.from(new Set([...profCals, ...persCals]));
+            // Only fallback to primary if 'both' is requested and absolutely nothing is configured
+            if (calendarIds.length === 0) calendarIds = ['primary'];
+        }
+
+        const eventsPromises = calendarIds.map(async (calendarId) => {
+            try {
+                const response = await calendar.events.list({
+                    calendarId: calendarId.trim(),
+                    timeMin: timeMin.toISOString(),
+                    timeMax: timeMax.toISOString(),
+                    maxResults: 15,
+                    singleEvents: true,
+                    orderBy: 'startTime',
+                });
+                return response.data.items;
+            } catch (e) {
+                console.error(`Failed to fetch from calendar ${calendarId}`, e.message);
+                return [];
+            }
+        });
+
+        const allItems = (await Promise.all(eventsPromises)).flat();
+
+        // Sort the merged items by startTime and filter empty
+        allItems.sort((a, b) => {
+            const dateA = new Date(a.start.dateTime || a.start.date);
+            const dateB = new Date(b.start.dateTime || b.start.date);
+            return dateA - dateB;
+        });
+
+        const events = allItems.slice(0, 15).map(event => ({
+            id: event.id,
+            summary: event.summary,
+            start: event.start.dateTime || event.start.date,
+            end: event.end.dateTime || event.end.date
+        }));
+
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, events);
+        res.json(events);
+    } catch (err) {
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
+    }
+});
+
+// --- Inbox Endpoint (Short-Lived 30s Cache for Rate Limiting Mitigation) ---
+app.get('/api/inbox', async (req, res) => {
+    const cacheKey = 'inboxData';
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cachedData);
+    }
+
+    try {
+        const auth = await getOAuth2Client();
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // Get actionable messages (anything in the inbox)
+        const response = await gmail.users.messages.list({
+            userId: 'me',
+            q: 'in:inbox',
+            maxResults: 5
+        });
+
+        if (!response.data.messages) {
+            apiCache.set(cacheKey, [], 30);
+            return res.json([]);
+        }
+
+        const messages = await Promise.all(response.data.messages.map(async (msg) => {
+            const detail = await gmail.users.messages.get({
+                userId: 'me',
+                id: msg.id,
+                format: 'metadata',
+                metadataHeaders: ['Subject', 'From', 'Date']
+            });
+            const headers = detail.data.payload.headers;
+            const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+            const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+            return { id: msg.id, snippet: detail.data.snippet, subject, from };
+        }));
+
+        res.setHeader('X-Cache', 'MISS');
+        apiCache.set(cacheKey, messages, 30); // 30 second TTL
+        res.json(messages);
+    } catch (err) {
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') || err.message.includes('credentials.json') || err.message.includes('refresh token') });
+    }
+});
+
+// --- Background Sync for Trips ---
+const syncTripsForContext = async (context) => {
+    console.log(`[Trip Sync] Starting sync for context: ${context}`);
+    try {
+        const auth = await getOAuth2Client();
+        if (!auth) {
+            console.log(`[Trip Sync] Auth missing, skipping.`);
+            return;
+        }
+
+        const gmail = google.gmail({ version: 'v1', auth });
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        // 1. Fetch Gmail Data
+        let emailData = [];
+        try {
+            const query = 'in:inbox (subject:flight OR subject:hotel OR subject:reservation OR subject:booking OR subject:train OR subject:itinerary) newer_than:30d';
+            const response = await gmail.users.messages.list({
+                userId: 'me',
+                q: query,
+                maxResults: 15
+            });
+            if (response.data.messages) {
+                const msgs = await Promise.all(response.data.messages.map(async (m) => {
+                    const detail = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: m.id,
+                        format: 'metadata',
+                        metadataHeaders: ['Subject', 'Date']
+                    });
+                    const headers = detail.data.payload.headers;
+                    const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+                    const date = headers.find(h => h.name === 'Date')?.value || 'Unknown Date';
+                    return { source: 'gmail', subject, date, snippet: detail.data.snippet };
+                }));
+                emailData = msgs;
+            }
+        } catch (e) { console.error('[Trip Sync] Gmail fetch failed', e.message); }
+
+        // 2. Fetch Calendar Data
+        let calendarData = [];
+        try {
+            let calendarIds = ['primary'];
+            if (context === 'professional') {
+                calendarIds = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+            } else if (context === 'personal') {
+                calendarIds = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+            } else {
+                const profCals = process.env.PROFESSIONAL_CALENDAR_IDS ? process.env.PROFESSIONAL_CALENDAR_IDS.split(',') : [];
+                const persCals = process.env.PERSONAL_CALENDAR_IDS ? process.env.PERSONAL_CALENDAR_IDS.split(',') : [];
+                calendarIds = Array.from(new Set([...profCals, ...persCals]));
+                if (calendarIds.length === 0) calendarIds = ['primary'];
+            }
+            calendarIds = calendarIds.map(id => id.trim());
+
+            const calListResponse = await calendar.calendarList.list();
+            let targetCals = calListResponse.data.items;
+            if (calendarIds[0] !== 'primary') {
+                targetCals = targetCals.filter(cal => calendarIds.includes(cal.id));
+            }
+
+            const calPromises = targetCals.map(cal => {
+                return calendar.events.list({
+                    calendarId: cal.id,
+                    timeMin: new Date().toISOString(),
+                    timeMax: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString(),
+                    maxResults: 30,
+                    singleEvents: true,
+                    orderBy: 'startTime',
+                }).then(response => {
+                    if (!response.data.items) return [];
+                    const travelEvents = response.data.items.filter(e => {
+                        const text = (e.summary + " " + (e.description || "")).toLowerCase();
+                        return ['flight', 'train', 'hotel', 'travelperk', 'tripit', 'rental', 'reservation'].some(kw => text.includes(kw));
+                    });
+                    return travelEvents.map(e => ({
+                        source: 'calendar',
+                        subject: e.summary,
+                        start: e.start.dateTime || e.start.date,
+                        end: e.end.dateTime || e.end.date,
+                        description: e.description || ''
+                    }));
+                }).catch(err => { console.error(`[Trip Sync] Calendar ${cal.summary} failed`, err.message); return []; });
+            });
+            calendarData = (await Promise.all(calPromises)).flat();
+        } catch (e) { console.error('[Trip Sync] Calendar fetch failed', e.message); }
+
+        const combinedData = [...emailData, ...calendarData];
+        if (combinedData.length === 0) return;
+
+        // 3. Process via Gemini
+        if (!ai) {
+            console.log("[Trip Sync] Gemini API absent, cannot group trips.");
+            return;
+        }
+
+        const prompt = `
+You are a highly intelligent travel grouping engine.
+I am providing you with unstructured data representing a user's upcoming travel from both their Calendar and their Gmail Inbox.
+Your job is to:
+1. Identify distinct "Trips" (e.g., a trip to San Francisco, a trip to London).
+2. Group all related flights, hotels, and train bookings under their respective parent Trips.
+3. AGGRESSIVELY DEDUPLICATE: If a flight appears in both the calendar and the inbox, merge it into a SINGLE component.
+4. Format the output strictly as the following JSON schema. No extra markdown, no code blocks, just raw JSON.
+
+Schema to follow EXACTLY:
+[
+  {
+    "TripName": "City/Location Name",
+    "StartDate": "YYYY-MM-DD",
+    "EndDate": "YYYY-MM-DD",
+    "Components": [
+      {
+        "Type": "Flight | Hotel | Train | Other",
+        "Title": "Short description (e.g. BA285 to SFO)",
+        "DateTime": "MMM D, h:mm A",
+        "ConfirmationCode": "Found code or N/A" 
+      }
+    ]
+  }
+]
+
+Raw Data to Process:
+${JSON.stringify(combinedData)}
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        const responseText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const groupedTrips = JSON.parse(responseText);
+
+        // 4. Save to Database
+        const now = new Date().toISOString();
+        const existing = db.prepare('SELECT id FROM grouped_trips WHERE context_mode = ?').get(context);
+
+        if (existing) {
+            db.prepare('UPDATE grouped_trips SET trip_data = ?, last_updated = ? WHERE id = ?')
+                .run(JSON.stringify(groupedTrips), now, existing.id);
+        } else {
+            db.prepare('INSERT INTO grouped_trips (context_mode, trip_data, last_updated) VALUES (?, ?, ?)')
+                .run(context, JSON.stringify(groupedTrips), now);
+        }
+
+        console.log(`[Trip Sync] Successfully synced trips for ${context}`);
+    } catch (err) {
+        console.error(`[Trip Sync] Error syncing context ${context}:`, err);
+    }
+};
+
+// Helper for rate-limiting
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Schedule background sync every hour
+cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Running scheduled trip sync...');
+    await syncTripsForContext('professional');
+    await sleep(5000);
+    await syncTripsForContext('personal');
+    await sleep(5000);
+    await syncTripsForContext('both');
+});
+
+// Optional manual trigger endpoint if needed immediately
+app.post('/api/trips/sync', async (req, res) => {
+    const context = req.query.context || 'both';
+    if (context === 'all') {
+        // Test helper to sync all 3 with delays
+        res.json({ success: true, message: 'Full sync started sequentially' });
+        await syncTripsForContext('professional');
+        await sleep(5000);
+        await syncTripsForContext('personal');
+        await sleep(5000);
+        await syncTripsForContext('both');
+        return;
+    }
+    syncTripsForContext(context); // Run async for a single specified context
+    res.json({ success: true, message: 'Sync started for ' + context });
+});
+
+
+// --- Trips Endpoint (Zero-Latency SQLite Read) ---
+app.get('/api/trips', (req, res) => {
+    const context = req.query.context || 'both';
+    try {
+        const row = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get(context);
+        if (row && row.trip_data) {
+            res.json(JSON.parse(row.trip_data));
+        } else {
+            // If empty, trigger a background sync so next time it's there
+            syncTripsForContext(context);
+            res.json([]);
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// AI Auto-Scheduling Endpoint
+app.post('/api/ai/schedule', async (req, res) => {
+    try {
+        const { taskTitle, calendarEvents } = req.body;
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(400).json({ error: 'Gemini API Key is missing. Please add it to your .env file.' });
+        }
+
+        const prompt = `
+You are an intelligent executive assistant like Sunsama.
+Your goal is to look at a user's task and their upcoming calendar schedule, and determine the BEST 30-minute to 1-hour time slot for them to complete this task.
+The user works roughly 9 AM to 5 PM. Do not schedule tasks during their existing calendar events. Do not schedule tasks in the past.
+Assume today is ${new Date().toLocaleDateString()} and the time is ${new Date().toLocaleTimeString()}.
+
+Task to schedule: "${taskTitle}"
+
+User's upcoming calendar events:
+${JSON.stringify(calendarEvents, null, 2)}
+
+Respond with ONLY a valid JSON object in the exact following format, with no markdown formatting or extra text:
+{
+  "recommendedTime": "YYYY-MM-DDTHH:MM:SSZ",
+  "reasoning": "A short, 1-sentence explanation of why you chose this time."
+}
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        let responseText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const suggestion = JSON.parse(responseText);
+        res.json(suggestion);
+
+    } catch (err) {
+        console.error("AI Scheduling Error:", err);
+        res.status(500).json({ error: 'Failed to generate AI schedule.' });
+    }
+});
+
+// --- Pomodoro Endpoints ---
+app.post('/api/pomodoros', express.json(), (req, res) => {
+    try {
+        const { duration_minutes, task_id_optional } = req.body;
+        const insertPomodoro = db.prepare('INSERT INTO pomodoros (duration_minutes, completed_at, task_id_optional) VALUES (?, ?, ?)');
+        const result = insertPomodoro.run(duration_minutes, new Date().toISOString(), task_id_optional || null);
+        res.status(201).json({ id: result.lastInsertRowid, message: 'Pomodoro logged successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to log Pomodoro' });
+    }
+});
+
+app.get('/api/pomodoros/stats', (req, res) => {
+    try {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 6);
+
+        const getStats = db.prepare(`
+            SELECT 
+                date(completed_at) as date,
+                SUM(duration_minutes) as minutes
+            FROM pomodoros
+            WHERE date(completed_at) >= date(?)
+            GROUP BY date(completed_at)
+            ORDER BY date(completed_at) ASC
+        `);
+
+        const rawStats = getStats.all(sevenDaysAgo.toISOString());
+
+        // Build 7-day array
+        const heatmap = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(sevenDaysAgo);
+            d.setDate(sevenDaysAgo.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+
+            const existing = rawStats.find(r => r.date.startsWith(dateStr));
+            heatmap.push({
+                date: dateStr,
+                minutes: existing ? existing.minutes : 0
+            });
+        }
+
+        const todayStr = today.toISOString().split('T')[0];
+        const todayMins = heatmap.find(h => h.date === todayStr)?.minutes || 0;
+
+        res.json({
+            today: todayMins,
+            heatmap: heatmap
+        });
+    } catch (err) {
+        console.error("Pomodoro Stats Error:", err);
+        res.status(500).json({ error: 'Failed to fetch Pomodoro stats' });
+    }
+});
+
+// --- MailCraft SSE Endpoint ---
+const TONE_LABELS = {
+    professional: "Professional",
+    warm: "Warm",
+    concise: "Concise",
+    friendly: "Friendly",
+    formal: "Formal",
+    persuasive: "Persuasive",
+    apologetic: "Apologetic",
+    grateful: "Grateful",
+};
+
+const TONE_DESCRIPTIONS = {
+    professional: "Clear, polished, and business-appropriate. Confident without being stiff.",
+    warm: "Friendly and personable with genuine warmth. Approachable yet respectful.",
+    concise: "Brief and to the point. Every sentence earns its place. No filler.",
+    friendly: "Casual and upbeat. Like writing to a colleague you get along with.",
+    formal: "Traditional business correspondence. Proper structure and courteous language.",
+    persuasive: "Compelling and action-oriented. Builds a clear case with confident language.",
+    apologetic: "Sincere and accountable. Acknowledges the issue and offers a path forward.",
+    grateful: "Genuinely thankful and appreciative. Specific about what you value.",
+};
+
+function buildSystemPrompt(tone) {
+    return `You are an expert email writer. Your task is to transform the user's rough thoughts into a polished, well-structured email.
+
+Tone: ${TONE_LABELS[tone]} — ${TONE_DESCRIPTIONS[tone]}
+
+Rules:
+- Write ONLY the email body. No subject line, no meta-commentary, no explanations.
+- Start directly with the greeting (e.g., "Hi Sarah," or "Dear Mr. Thompson,").
+- End with an appropriate sign-off (e.g., "Best regards," or "Thanks,") followed by a blank line for the sender's name.
+- Match the tone precisely. Every word should feel intentional.
+- Keep paragraphs short (2-3 sentences max) for readability.
+- If the user provides context about an email they're replying to, weave in relevant references naturally.
+- Never use placeholder brackets like [Name] — if information is missing, write around it gracefully.
+- Do not include a subject line or any text before the greeting.`;
+}
+
+function buildUserMessage(rawThoughts, replyContext) {
+    let message = `Here are my rough thoughts for this email:\n\n${rawThoughts}`;
+    if (replyContext && replyContext.trim().length > 0) {
+        message += `\n\n---\n\nThis is a reply to the following email:\n\n${replyContext}`;
+    }
+    return message;
+}
+
+app.post('/api/mailcraft', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const { draftText, tone, replyContext } = req.body;
+    if (!draftText || !tone) {
+        res.write(`data: ${JSON.stringify({ error: "Missing required fields: draftText and tone" })}\n\n`);
+        return res.end();
+    }
+
+    try {
+        if (!ai) {
+            throw new Error("Gemini AI is not initialized. Please configure GEMINI_API_KEY.");
+        }
+
+        const responseStream = await ai.models.generateContentStream({
+            model: 'gemini-2.5-flash',
+            contents: buildUserMessage(draftText, replyContext),
+            config: {
+                systemInstruction: buildSystemPrompt(tone),
+                maxOutputTokens: 1024
+            }
+        });
+
+        req.on('close', () => {
+            // connection broke, we can't cleanly abort generator but we can listen
+        });
+
+        for await (const chunk of responseStream) {
+            if (req.destroyed) break;
+            if (chunk.text) {
+                res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+            }
+        }
+
+        if (!req.destroyed) {
+            res.write('data: [DONE]\n\n');
+            res.end();
+        }
+    } catch (err) {
+        console.error("MailCraft error:", err);
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+    }
+});
+
+// --- MailCraft Send Endpoint ---
+app.post('/api/mailcraft/send', async (req, res) => {
+    const { replyToMessageId, payloadText } = req.body;
+    if (!replyToMessageId || !payloadText) {
+        return res.status(400).json({ error: "Missing replyToMessageId or payloadText" });
+    }
+
+    try {
+        const auth = await getOAuth2Client();
+        if (!auth) {
+            return res.status(401).json({ error: "Missing Google authentication." });
+        }
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // Fetch original message to get headers for reply
+        const originalMessage = await gmail.users.messages.get({
+            userId: 'me',
+            id: replyToMessageId,
+            format: 'metadata',
+            metadataHeaders: ['Message-ID', 'Subject', 'From', 'To', 'Cc']
+        });
+
+        const headers = originalMessage.data.payload.headers;
+        const originalMessageId = headers.find(h => h.name === 'Message-ID')?.value || '';
+        let subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+        if (!subject.startsWith('Re:')) {
+            subject = 'Re: ' + subject;
+        }
+
+        const to = headers.find(h => h.name === 'From')?.value || '';
+
+        const messageParts = [
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            `In-Reply-To: ${originalMessageId}`,
+            `References: ${originalMessageId}`,
+            `Content-Type: text/plain; charset="UTF-8"`,
+            '',
+            payloadText
+        ];
+        const message = messageParts.join('\n');
+
+        // Base64url encode for Gmail API
+        const encodedMessage = Buffer.from(message)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+
+        // Send via Gmail
+        await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw: encodedMessage,
+                threadId: originalMessage.data.threadId // Keep it in the same thread
+            }
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Failed to send MailCraft reply:", err);
+        res.status(500).json({ error: err.message, requiresAuth: err.message.includes('authenticate') });
+    }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} (0.0.0.0 binding)`);
+});
+</file>
+
+</files>

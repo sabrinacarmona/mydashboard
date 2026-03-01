@@ -11,6 +11,7 @@ const { GoogleGenAI } = require('@google/genai');
 const Database = require('better-sqlite3');
 const NodeCache = require('node-cache');
 const cron = require('node-cron');
+const nodemailer = require('nodemailer');
 
 let ai = null;
 if (process.env.GEMINI_API_KEY) {
@@ -341,6 +342,21 @@ app.put('/api/rituals/:id', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/api/rituals', express.json(), (req, res) => {
+    const { title, context_mode = 'both' } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title required' });
+    const id = Date.now().toString();
+    const today = new Date().toDateString();
+    db.prepare('INSERT INTO rituals (id, title, completed, lastResetDate, context_mode) VALUES (?, ?, 0, ?, ?)').run(id, title, today, context_mode);
+    res.json({ id, title, completed: false, lastResetDate: today, context_mode });
+});
+
+app.delete('/api/rituals/:id', (req, res) => {
+    const { id } = req.params;
+    db.prepare('DELETE FROM rituals WHERE id = ?').run(id);
+    res.json({ success: true });
+});
+
 // --- Calendar Endpoint (Cached) ---
 app.get('/api/calendar', async (req, res) => {
     const context = req.query.context || 'both';
@@ -566,7 +582,7 @@ Your job is to:
 2. Group all related flights, hotels, and train bookings under their respective parent Trips.
 3. AGGRESSIVELY DEDUPLICATE: If a flight appears in both the calendar and the inbox, merge it into a SINGLE component.
 4. Format the output strictly as the following JSON schema. No extra markdown, no code blocks, just raw JSON.
-5. CRITICAL DATE OVERLAP RULE: NEVER create multiple separate trips for the same or overlapping date ranges. If an event, flight, or hotel happens within the date range of another trip (or within 1-2 days of it), it MUST be grouped into that existing master trip. Your final JSON output MUST NOT contain any trips with overlapping StartDate and EndDate windows.
+5. NUCLEAR OVERLAP RULE: You are FORBIDDEN from outputting multiple trips that occur within 14 days of each other. If there are flights to SF and flights to LA in the same month, you MUST merge them into a single parent trip called "San Francisco & Los Angeles" with the earliest StartDate and latest EndDate. Outputting overlapping trips will result in a critical system failure.
 
 Schema to follow EXACTLY:
 [
@@ -734,57 +750,46 @@ const sendDatabaseBackup = async (triggerSource = 'Cron') => {
         }
 
         const gmail = google.gmail({ version: 'v1', auth });
-
         // Get user's own email address
-        const profile = await gmail.users.getProfile({ userId: 'me' });
+        const profile = await google.gmail({ version: 'v1', auth }).users.getProfile({ userId: 'me' });
         const userEmail = profile.data.emailAddress;
 
-        // Read and encode the database
+        // Read the database
         const dbBuffer = fs.readFileSync(DB_PATH);
-        const dbBase64 = dbBuffer.toString('base64');
-
-        // Construct MIME Boundary
-        const boundary = "SabrinaOS_Backup_Boundary_" + Date.now().toString(16);
         const dateStr = new Date().toISOString().split('T')[0];
 
-        const messageLines = [
-            `To: ${userEmail}`,
-            `From: "SabrinaOS Auto-Pilot" <${userEmail}>`,
-            `Subject: 🛡️ SabrinaOS Daily DB Backup (${dateStr})`,
-            `Content-Type: multipart/mixed; boundary="${boundary}"`,
-            '',
-            `--${boundary}`,
-            'Content-Type: text/plain; charset="UTF-8"',
-            '',
-            `Attached is your latest SabrinaOS SQLite database backup (database_backup_${dateStr}.db). Triggered by: ${triggerSource}.`,
-            `Keep this safe!`,
-            '',
-            `--${boundary}`,
-            `Content-Type: application/x-sqlite3`,
-            `Content-Disposition: attachment; filename="database_backup_${dateStr}.db"`,
-            `Content-Transfer-Encoding: base64`,
-            '',
-            dbBase64,
-            `--${boundary}--`
-        ];
+        // Ensure Nodemailer is using the auth client's current access token
+        const tokenResp = await auth.getAccessToken();
+        const token = tokenResp ? tokenResp.token : null;
+        if (!token) throw new Error("Could not retrieve access token for Nodemailer.");
 
-        const rawMessage = messageLines.join('\r\n');
-
-        // Base64url encode the entire MIME string
-        const encodedMessage = Buffer.from(rawMessage)
-            .toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-        await gmail.users.messages.send({
-            userId: 'me',
-            requestBody: {
-                raw: encodedMessage
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                type: 'OAuth2',
+                user: userEmail,
+                clientId: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                accessToken: token,
+                refreshToken: auth.credentials.refresh_token,
             }
         });
 
-        console.log(`[Backup] Successfully emailed database to ${userEmail}`);
+        await transporter.sendMail({
+            from: `"SabrinaOS Auto-Pilot" <${userEmail}>`,
+            to: userEmail,
+            subject: `🛡️ SabrinaOS Daily DB Backup (${dateStr})`,
+            text: `Attached is your latest SabrinaOS SQLite database backup (database_backup_${dateStr}.db). Triggered by: ${triggerSource}.\n\nKeep this safe!`,
+            attachments: [
+                {
+                    filename: `database_backup_${dateStr}.db`,
+                    content: dbBuffer,
+                    contentType: 'application/x-sqlite3'
+                }
+            ]
+        });
+
+        console.log(`[Backup] Successfully emailed database to ${userEmail} via nodemailer`);
         return true;
     } catch (err) {
         console.error(`[Backup] Failed to send database backup:`, err);

@@ -284,14 +284,24 @@
 
             <!-- Daily Rituals (Top of Column 2) -->
             <div class="rounded-2xl p-4 glass-card shrink-0">
-                <h2 class="text-sm font-semibold flex items-center text-white/90 mb-3">
-                    <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                        </path>
-                    </svg>
-                    Daily Rituals
-                </h2>
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold flex items-center text-white/90">
+                        <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Daily Rituals
+                    </h2>
+                    <button onclick="addRitual()"
+                        class="text-white/40 hover:text-pink-400 transition-colors cursor-pointer p-1"
+                        title="Add Ritual">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
                 <div id="rituals-container" class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
                     <div class="text-xs text-white/40 italic">Loading rituals...</div>
                 </div>
@@ -1052,12 +1062,19 @@
                 }
 
                 rituals.forEach(ritual => {
-                    const el = document.createElement('label');
-                    el.className = `flex items-center space-x-3 p-2 rounded-lg transition-colors cursor-pointer hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
+                    const el = document.createElement('div');
+                    el.className = `group flex items-center justify-between p-2 rounded-lg transition-colors hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
                     el.innerHTML = `
-                        <input type="checkbox" class="form-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
-                               ${ritual.completed ? 'checked' : ''} onchange="toggleRitual('${ritual.id}', this.checked)">
-                        <span class="text-sm text-white/90 ${ritual.completed ? 'line-through text-white/50' : ''}">${ritual.title}</span>
+                        <label class="flex items-center space-x-3 cursor-pointer flex-1">
+                            <input type="checkbox" class="form-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
+                                ${ritual.completed ? 'checked' : ''} onchange="toggleRitual('${ritual.id}', this.checked)">
+                            <span class="text-sm text-white/90 ${ritual.completed ? 'line-through text-white/50' : ''}">${ritual.title}</span>
+                        </label>
+                        <button onclick="deleteRitual('${ritual.id}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-1" title="Delete Ritual">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     `;
                     container.appendChild(el);
                 });
@@ -1077,6 +1094,31 @@
                 loadRituals(); // Reload to refresh visually and safely
             } catch (err) {
                 console.error("Rituals toggle error:", err);
+            }
+        }
+
+        async function addRitual() {
+            const title = prompt("Enter new daily ritual:");
+            if (!title || !title.trim()) return;
+            try {
+                await fetch(`${API_BASE}/rituals`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title.trim(), context_mode: currentContext })
+                });
+                loadRituals();
+            } catch (err) {
+                console.error("Failed to add ritual:", err);
+            }
+        }
+
+        async function deleteRitual(id) {
+            if (!confirm("Delete this daily ritual?")) return;
+            try {
+                await fetch(`${API_BASE}/rituals/${id}`, { method: 'DELETE' });
+                loadRituals();
+            } catch (err) {
+                console.error("Failed to delete ritual:", err);
             }
         }
 
