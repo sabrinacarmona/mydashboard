@@ -478,13 +478,34 @@ app.get('/api/inbox', async (req, res) => {
     }
 });
 
+const activeSyncs = new Set();
+
 // --- Background Sync for Trips ---
+const saveGroupedTripsToDb = (context, dataArray) => {
+    const now = new Date().toISOString();
+    const existing = db.prepare('SELECT id FROM grouped_trips WHERE context_mode = ?').get(context);
+    if (existing) {
+        db.prepare('UPDATE grouped_trips SET trip_data = ?, last_updated = ? WHERE id = ?')
+            .run(JSON.stringify(dataArray), now, existing.id);
+    } else {
+        db.prepare('INSERT INTO grouped_trips (context_mode, trip_data, last_updated) VALUES (?, ?, ?)')
+            .run(context, JSON.stringify(dataArray), now);
+    }
+};
+
 const syncTripsForContext = async (context) => {
+    if (activeSyncs.has(context)) {
+        console.log(`[Trip Sync] Sync already in progress for ${context}, skipping duplicate request.`);
+        return;
+    }
+    activeSyncs.add(context);
     console.log(`[Trip Sync] Starting sync for context: ${context}`);
+
     try {
         const auth = await getOAuth2Client();
         if (!auth) {
             console.log(`[Trip Sync] Auth missing, skipping.`);
+            activeSyncs.delete(context);
             return;
         }
 
@@ -566,11 +587,16 @@ const syncTripsForContext = async (context) => {
         } catch (e) { console.error('[Trip Sync] Calendar fetch failed', e.message); }
 
         const combinedData = [...emailData, ...calendarData];
-        if (combinedData.length === 0) return;
+        if (combinedData.length === 0) {
+            console.log(`[Trip Sync] No travel data found for ${context}. Saving empty state.`);
+            saveGroupedTripsToDb(context, []);
+            return;
+        }
 
         // 3. Process via Gemini
         if (!ai) {
             console.log("[Trip Sync] Gemini API absent, cannot group trips.");
+            saveGroupedTripsToDb(context, []);
             return;
         }
 
@@ -646,20 +672,13 @@ ${JSON.stringify(combinedData)}
         }
 
         // 4. Save to Database
-        const now = new Date().toISOString();
-        const existing = db.prepare('SELECT id FROM grouped_trips WHERE context_mode = ?').get(context);
-
-        if (existing) {
-            db.prepare('UPDATE grouped_trips SET trip_data = ?, last_updated = ? WHERE id = ?')
-                .run(JSON.stringify(groupedTrips), now, existing.id);
-        } else {
-            db.prepare('INSERT INTO grouped_trips (context_mode, trip_data, last_updated) VALUES (?, ?, ?)')
-                .run(context, JSON.stringify(groupedTrips), now);
-        }
+        saveGroupedTripsToDb(context, groupedTrips);
 
         console.log(`[Trip Sync] Successfully synced trips for ${context}`);
     } catch (err) {
         console.error(`[Trip Sync] Error syncing context ${context}:`, err);
+    } finally {
+        activeSyncs.delete(context);
     }
 };
 
