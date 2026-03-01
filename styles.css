@@ -1,18 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,600;0,700;1,400&family=Helvetica+Neue:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
     /* Professional Context: Cool slate charcoal */
-    --bg-color: #0d1117;
-    --zen-bg-color: #080a0e;
-    --text-primary: #f4f4f0;
-    --border-color: rgba(244, 244, 240, 0.15);
+    --bg-color: #0A0A0B;
+    --zen-bg-color: #050505;
+    --text-primary: #F8FAFC;
+    --border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.theme-personal {
     /* Personal Context: Warm sepia charcoal */
-    --bg-color: #1a1614;
-    --zen-bg-color: #0f0d0b;
-    --border-color: rgba(244, 244, 240, 0.15);
+    --bg-color: #121212;
+    --zen-bg-color: #0A0A0B;
+    --border-color: rgba(255, 255, 255, 0.1);
 }
 
 body {
@@ -24,8 +24,8 @@ body {
     transition: background-color 0.8s ease;
 }
 
-.font-serif {
-    font-family: 'Bodoni Moda', serif;
+.font-display {
+    font-family: 'Space Grotesk', sans-serif;
 }
 
 .font-sans {
