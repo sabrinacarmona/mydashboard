@@ -15,6 +15,7 @@ const cron = require('node-cron');
 const nodemailer = require('nodemailer');
 const { z } = require('zod');
 const { TripsResponseSchema } = require('./schemas/zodSchemas');
+const { deduplicateTrips } = require('./utils/deduplication');
 
 // --- Initialization: Cache ---
 // TTL is 300 seconds (5 minutes)
@@ -580,40 +581,8 @@ ${JSON.stringify(combinedData)}
         // --- Phase 1: Zod Schema Validation ---
         const parsedTrips = TripsResponseSchema.parse(rawParsedTrips);
 
-        // --- Hotfix 4.9.2: JS-Level 14-Day Deduplication ---
-        let groupedTrips = [];
-        if (Array.isArray(parsedTrips) && parsedTrips.length > 0) {
-            parsedTrips.sort((a, b) => new Date(a.StartDate) - new Date(b.StartDate));
-            groupedTrips.push(parsedTrips[0]);
-
-            for (let i = 1; i < parsedTrips.length; i++) {
-                const current = parsedTrips[i];
-                const last = groupedTrips[groupedTrips.length - 1];
-                const lastEnd = new Date(last.EndDate || last.StartDate);
-                const currentStart = new Date(current.StartDate);
-
-                const diffTime = Math.abs(currentStart - lastEnd);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays <= 2) {
-                    // Merge into last trip
-                    const lastBaseName = last.TripName.split(' & ')[0];
-                    const currentBaseName = current.TripName.split(' & ')[0];
-                    if (!last.TripName.includes(currentBaseName)) {
-                        last.TripName = `${lastBaseName} & ${currentBaseName}`;
-                    }
-                    if (new Date(current.EndDate || current.StartDate) > lastEnd) {
-                        last.EndDate = current.EndDate || current.StartDate;
-                    }
-                    // Important: Check for duplicate components before merging
-                    const existingTitles = new Set((last.Components || []).map(c => c.Name));
-                    const uniqueNewComps = (current.Components || []).filter(c => !existingTitles.has(c.Name));
-                    last.Components = [...(last.Components || []), ...uniqueNewComps];
-                } else {
-                    groupedTrips.push(current);
-                }
-            }
-        }
+        // --- Hotfix 4.9.2: JS-Level 14-Day Deduplication (now in utils) ---
+        let groupedTrips = deduplicateTrips(parsedTrips);
 
         // 4. Save to Database
         saveGroupedTripsToDb(context, groupedTrips);

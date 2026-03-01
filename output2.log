@@ -75,3 +75,180 @@ Server running on port 3002 (0.0.0.0 binding)
     at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
     at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
     at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[2026-03-01T06:00:03.559Z] [PID: 58072] [32m[NODE-CRON][32m [33m[WARN][0m missed execution at Sun Mar 01 2026 06:00:00 GMT+0000 (Greenwich Mean Time)! Possible blocking IO or high CPU user at the same process used by node-cron.
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[2026-03-01T10:00:03.567Z] [PID: 58072] [32m[NODE-CRON][32m [33m[WARN][0m missed execution at Sun Mar 01 2026 10:00:00 GMT+0000 (Greenwich Mean Time)! Possible blocking IO or high CPU user at the same process used by node-cron.
+[Cron] Running scheduled trip sync...
+[Trip Sync] Starting sync for context: professional
+[Trip Sync] Error syncing context professional: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:621:11
+    at Runner.onMatch (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/tasks/inline-scheduled-task.js:69:20)
+    at Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:55)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[Trip Sync] Starting sync for context: personal
+[Trip Sync] Error syncing context personal: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:623:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
+[Trip Sync] Starting sync for context: both
+[Trip Sync] Error syncing context both: Error: GOOGLE_CREDENTIALS_JSON environment variable is not set.
+    at getGoogleApiConfig (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:169:11)
+    at getOAuth2Client (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:174:57)
+    at syncTripsForContext (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:467:28)
+    at /Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/server.js:625:11
+    at async Timeout._onTimeout (/Users/sabrinacarmona/Desktop/Gemini/Antigravity/MyDashboard/node_modules/node-cron/dist/cjs/scheduler/runner.js:70:44)
