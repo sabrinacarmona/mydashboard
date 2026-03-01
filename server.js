@@ -854,24 +854,22 @@ cron.schedule('0 * * * *', async () => {
     await sleep(5000);
     await syncTripsForContext('personal');
     await sleep(5000);
-    await syncTripsForContext('both');
 });
 
 // Optional manual trigger endpoint if needed immediately
 app.post('/api/trips/sync', async (req, res) => {
-    const context = req.query.context || 'both';
-    if (context === 'all') {
-        // Test helper to sync all 3 with delays
+    const context = req.query.context || 'all'; // Default to syncing all underlying
+    if (context === 'all' || context === 'both') {
+        // Test helper to sync both with delays
         res.json({ success: true, message: 'Full sync started sequentially' });
         await syncTripsForContext('professional');
         await sleep(5000);
         await syncTripsForContext('personal');
-        await sleep(5000);
-        await syncTripsForContext('both');
         return;
     }
-    syncTripsForContext(context); // Run async for a single specified context
-    res.json({ success: true, message: 'Sync started for ' + context });
+
+    res.json({ success: true, message: `Sync started for context: ${context}` });
+    await syncTripsForContext(context);
 });
 
 
@@ -879,13 +877,73 @@ app.post('/api/trips/sync', async (req, res) => {
 app.get('/api/trips', (req, res) => {
     const context = req.query.context || 'both';
     try {
-        const row = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get(context);
-        if (row && row.trip_data) {
-            res.json(JSON.parse(row.trip_data));
+        if (context === 'both') {
+            const rowProf = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get('professional');
+            const rowPers = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get('personal');
+
+            let combined = [];
+            let needsSync = false;
+
+            if (rowProf && rowProf.trip_data) {
+                combined.push(...JSON.parse(rowProf.trip_data));
+            } else {
+                syncTripsForContext('professional');
+                needsSync = true;
+            }
+
+            if (rowPers && rowPers.trip_data) {
+                combined.push(...JSON.parse(rowPers.trip_data));
+            } else {
+                syncTripsForContext('personal');
+                needsSync = true;
+            }
+
+            if (needsSync && combined.length === 0) {
+                return res.json([]);
+            }
+
+            // Re-apply Hotfix 4.9.2 native 14-day deduplication to the merged sets
+            if (combined.length > 0) {
+                combined.sort((a, b) => new Date(a.StartDate) - new Date(b.StartDate));
+                let finalTrips = [combined[0]];
+
+                for (let i = 1; i < combined.length; i++) {
+                    const current = combined[i];
+                    const last = finalTrips[finalTrips.length - 1];
+                    const lastEnd = new Date(last.EndDate || last.StartDate);
+                    const currentStart = new Date(current.StartDate);
+
+                    const diffTime = Math.abs(currentStart - lastEnd);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays <= 14) {
+                        const lastBaseName = last.TripName.split(' & ')[0];
+                        const currentBaseName = current.TripName.split(' & ')[0];
+                        if (!last.TripName.includes(currentBaseName)) {
+                            last.TripName = `${lastBaseName} & ${currentBaseName}`;
+                        }
+                        if (new Date(current.EndDate || current.StartDate) > lastEnd) {
+                            last.EndDate = current.EndDate || current.StartDate;
+                        }
+                        // Important: Check for duplicate components before merging
+                        const existingTitles = new Set((last.Components || []).map(c => c.Title));
+                        const uniqueNewComps = (current.Components || []).filter(c => !existingTitles.has(c.Title));
+                        last.Components = [...(last.Components || []), ...uniqueNewComps];
+                    } else {
+                        finalTrips.push(current);
+                    }
+                }
+                combined = finalTrips;
+            }
+            res.json(combined);
         } else {
-            // If empty, trigger a background sync so next time it's there
-            syncTripsForContext(context);
-            res.json([]);
+            const row = db.prepare('SELECT trip_data FROM grouped_trips WHERE context_mode = ?').get(context);
+            if (row && row.trip_data) {
+                res.json(JSON.parse(row.trip_data));
+            } else {
+                syncTripsForContext(context);
+                res.json([]);
+            }
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
