@@ -746,7 +746,7 @@
                 const isToday = new Date().toDateString() === date.toDateString();
 
                 const timeStr = event.start.includes('T') ?
-                    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All Day';
+                    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'All Day';
 
                 const el = document.createElement('div');
                 el.className = `p-3 rounded-lg border ${isToday ? 'bg-blue-500/10 border-blue-500/30' : 'glass border-white/5'} flex justify-between items-start cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors`;
@@ -889,7 +889,7 @@
                 el.dataset.id = task.id;
 
                 // Content
-                const timeBadge = task.scheduledTime ? `<div class="mt-2 text-xs font-medium text-blue-300 bg-blue-500/10 inline-block px-2 py-0.5 rounded border border-blue-500/20">📅 ${new Date(task.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${task.scheduledReasoning}</div>` : '';
+                const timeBadge = task.scheduledTime ? `<div class="mt-2 text-xs font-medium text-blue-300 bg-blue-500/10 inline-block px-2 py-0.5 rounded border border-blue-500/20">📅 ${new Date(task.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} - ${task.scheduledReasoning}</div>` : '';
                 const loadingBadge = task.isScheduling ? `<div class="mt-2 text-xs font-medium text-soft-amber animate-pulse">✨ AI is finding a time...</div>` : '';
 
                 el.innerHTML = `
@@ -1382,7 +1382,7 @@
 
             // Update Last Synced timestamp
             const now = new Date();
-            const syncTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const syncTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
             document.getElementById('hud-last-sync').textContent = `SYNCED: ${syncTime}`;
         }
 
@@ -1396,7 +1396,7 @@
             dateEl.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
             // Format: "14:05" (24-hour)
-            timeEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            timeEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
 
         async function fetchHUDWeather() {

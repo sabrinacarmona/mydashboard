@@ -594,7 +594,7 @@ Schema to follow EXACTLY:
       {
         "Type": "Flight | Hotel | Train | Other",
         "Title": "Short description (e.g. BA285 to SFO)",
-        "DateTime": "MMM D, h:mm A",
+        "DateTime": "MMM D, HH:mm",
         "ConfirmationCode": "Found code or N/A" 
       }
     ]
@@ -873,7 +873,7 @@ app.post('/api/ai/schedule', async (req, res) => {
 You are an intelligent executive assistant like Sunsama.
 Your goal is to look at a user's task and their upcoming calendar schedule, and determine the BEST 30-minute to 1-hour time slot for them to complete this task.
 The user works roughly 9 AM to 5 PM.Do not schedule tasks during their existing calendar events.Do not schedule tasks in the past.
-Assume today is ${new Date().toLocaleDateString()} and the time is ${new Date().toLocaleTimeString()}.
+Assume today is ${new Date().toLocaleDateString()} and the time is ${new Date().toLocaleTimeString('en-US', { hour12: false })}.
 
 Task to schedule: "${taskTitle}"
 
