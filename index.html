@@ -15,9 +15,13 @@
             theme: {
                 extend: {
                     colors: {
-                        charcoal: '#121212',
-                        'neon-indigo': '#4f46e5',
-                        'soft-amber': '#f59e0b',
+                        charcoal: '#0a0a0a',
+                        'editorial-accent': '#f4f4f0',
+                        'soft-amber': '#d4a373',
+                    },
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Arial', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif']
                     }
                 }
             }
@@ -71,15 +75,15 @@
     <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
 </head>
 
-<body class="min-h-screen relative flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
-    <div class="ambient-glow-subtle hide-in-zen"></div>
+<body class="min-h-screen relative flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 font-sans">
 
     <!-- Top Navigation & Zen Toggle -->
     <div
         class="w-full max-w-[1400px] flex flex-col md:flex-row justify-between items-center mb-8 gap-6 md:gap-0 transition-all duration-700 relative z-50">
         <h1
-            class="text-2xl font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500 text-center md:text-left">
-            Sabrina's <span style="color: var(--accent-text)" class="transition-colors duration-800">Control
+            class="text-4xl font-serif font-bold tracking-tight text-white/90 hide-in-zen transition-opacity duration-500 text-center md:text-left">
+            Sabrina's <span style="color: var(--text-primary)"
+                class="italic font-normal transition-colors duration-800">Control
                 Centre</span></h1>
 
         <!-- Center Context Widget (HUD) -->
@@ -110,7 +114,7 @@
 
         <div class="flex flex-wrap justify-center items-center gap-4">
             <!-- Context Toggle -->
-            <div class="glass flex items-center rounded-full p-1 hide-in-zen transition-opacity duration-500">
+            <div class="flat-panel flex items-center rounded-full p-1 hide-in-zen transition-opacity duration-500">
                 <button id="context-professional"
                     class="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white/10 text-white/90">Professional</button>
                 <button id="context-personal"
@@ -119,13 +123,13 @@
 
             <!-- Auth Status -->
             <button id="auth-status"
-                class="text-sm font-medium px-4 py-2 rounded-full glass border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500 cursor-pointer hover:bg-red-500/10 active:scale-95">
+                class="text-sm font-medium px-4 py-2 rounded-full flat-panel border-red-500/30 text-red-400 hide-in-zen transition-opacity duration-500 cursor-pointer hover:bg-red-500/10 active:scale-95">
                 Google Not Connected
             </button>
 
             <!-- Zen Mode Toggle -->
             <button id="zen-toggle"
-                class="glass px-6 py-2 rounded-full font-medium text-sm hover:bg-white/10 transition-colors flex items-center space-x-2">
+                class="flat-panel px-6 py-2 rounded-full font-medium text-sm hover:bg-white/10 transition-colors flex items-center space-x-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -144,7 +148,7 @@
 
         <!-- Column 1: Actionable Inbox -->
         <div class="lg:col-span-3 flex flex-col space-y-6 h-auto lg:h-full hide-in-zen transition-all-slow">
-            <div class="rounded-2xl p-5 glass-card flex-grow overflow-hidden flex flex-col">
+            <div class="rounded-none p-5 flat-panel flex-grow overflow-hidden flex flex-col">
                 <div class="mb-4">
                     <h2 class="text-md font-semibold flex items-center text-white/90 mb-1">
                         <svg class="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +170,7 @@
 
                 <!-- Quick Notes Scratchpad -->
                 <div id="quick-notes-panel"
-                    class="absolute inset-0 rounded-2xl p-5 glass-card flex flex-col transition-opacity duration-300 opacity-100 z-10 pointer-events-auto">
+                    class="absolute inset-0 rounded-none p-5 flat-panel flex flex-col transition-opacity duration-300 opacity-100 z-10 pointer-events-auto">
                     <h2 class="text-md font-semibold flex items-center text-white/90 mb-3 shrink-0">
                         <svg class="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -186,7 +190,7 @@
 
                 <!-- MailCraft Interface -->
                 <div id="mailcraft-panel"
-                    class="absolute inset-0 rounded-2xl glass-card flex flex-col transition-opacity duration-300 opacity-0 pointer-events-none z-0 overflow-hidden"
+                    class="absolute inset-0 rounded-none flat-panel flex flex-col transition-opacity duration-300 opacity-0 pointer-events-none z-0 overflow-hidden"
                     style="backdrop-filter: blur(15px);">
                     <!-- Header -->
                     <div class="bg-white/5 p-3 shrink-0 border-b border-white/10 flex justify-between items-center">
@@ -217,7 +221,7 @@
                         </div>
 
                         <textarea id="mailcraft-draft-text"
-                            class="w-full min-h-[80px] scrollbar-thin bg-black/40 rounded-xl p-4 text-sm text-white placeholder-white/50 resize-none focus:outline-none focus:ring-1 shadow-inner ring-1 ring-white/10 transition-shadow shrink-0"
+                            class="w-full min-h-[80px] scrollbar-thin bg-black/40 rounded-none p-4 text-sm text-white placeholder-white/50 resize-none focus:outline-none focus:ring-1 shadow-inner ring-1 ring-white/10 transition-shadow shrink-0"
                             style="--tw-ring-color: var(--accent-text);"
                             placeholder="Rough thoughts for your reply..."></textarea>
 
@@ -235,7 +239,7 @@
 
                         <div class="mt-auto pt-2 shrink-0">
                             <button id="mailcraft-generate-btn"
-                                class="w-full min-h-[48px] rounded-xl bg-[#333333] hover:bg-[#444444] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold flex justify-center items-center text-white border border-white/5">
+                                class="w-full min-h-[48px] rounded-none bg-[#333333] hover:bg-[#444444] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold flex justify-center items-center text-white border border-white/5">
                                 Generate Draft <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -271,7 +275,7 @@
                                     </div>
                                 </div>
                                 <pre id="mailcraft-output-text"
-                                    class="bg-black/30 rounded-xl p-3 text-sm text-white/90 whitespace-pre-wrap font-sans min-h-[100px] border border-white/5 ring-1 ring-inset ring-white/10"></pre>
+                                    class="bg-black/30 rounded-none p-3 text-sm text-white/90 whitespace-pre-wrap font-sans min-h-[100px] border border-white/5 ring-1 ring-inset ring-white/10"></pre>
                             </div>
                         </div>
                     </div>
@@ -283,7 +287,7 @@
         <div class="lg:col-span-6 flex flex-col space-y-6 h-auto lg:h-[80vh] hide-in-zen transition-all-slow">
 
             <!-- Daily Rituals (Top of Column 2) -->
-            <div class="rounded-2xl p-4 glass-card shrink-0">
+            <div class="rounded-none p-4 flat-panel shrink-0">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-semibold flex items-center text-white/90">
                         <svg class="w-4 h-4 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,7 +312,7 @@
             </div>
 
             <!-- Tasks (Top Half) -->
-            <div class="rounded-2xl p-6 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+            <div class="rounded-none p-6 flat-panel flex-1 flex flex-col overflow-hidden min-h-[300px]">
                 <h2 class="text-lg font-semibold flex items-center text-white/90 mb-4">
                     <svg class="w-5 h-5 mr-2 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -318,7 +322,7 @@
                 </h2>
                 <form id="quick-add-form" class="mb-4 relative">
                     <input type="text" id="quick-add-input"
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-12 text-sm text-white focus:outline-none focus:border-soft-amber transition-colors"
+                        class="w-full bg-white/5 border border-white/10 rounded-none px-4 py-3 pl-12 text-sm text-white focus:outline-none focus:border-soft-amber transition-colors"
                         placeholder="Type a task and hit Enter...">
                     <span
                         class="absolute left-4 top-3.5 text-white/40 font-mono text-xs border border-white/20 rounded px-1">A</span>
@@ -335,7 +339,7 @@
                         <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1">Focus /
                             Doing
                         </h3>
-                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-none border border-dashed border-transparent transition-all"
                             id="list-doing" data-status="doing">
                         </div>
                     </div>
@@ -343,7 +347,7 @@
                         <h3 class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2 ml-1 mt-4">Next
                             Up
                             / Todo</h3>
-                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-xl border border-dashed border-transparent transition-all"
+                        <div class="space-y-2 kanban-dropzone min-h-[40px] rounded-none border border-dashed border-transparent transition-all"
                             id="list-todo" data-status="todo">
                         </div>
                     </div>
@@ -351,7 +355,7 @@
             </div>
 
             <!-- Trips (Bottom Half) -->
-            <div class="rounded-2xl p-5 glass-card flex-1 flex flex-col overflow-hidden min-h-[300px]">
+            <div class="rounded-none p-5 flat-panel flex-1 flex flex-col overflow-hidden min-h-[300px]">
                 <h2 class="text-md font-semibold flex items-center text-white/90 mb-4 shrink-0">
                     <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -369,7 +373,7 @@
 
         <!-- Column 3: Events & Pomodoro -->
         <div
-            class="lg:col-span-3 flex flex-col rounded-2xl p-6 glass-card h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
+            class="lg:col-span-3 flex flex-col rounded-none p-6 flat-panel h-auto min-h-[500px] lg:h-[80vh] lg:overflow-hidden hide-in-zen transition-all-slow">
 
             <!-- Focus Heatmap -->
             <div class="mb-6 pb-6 border-b border-white/10 shrink-0">
@@ -424,7 +428,7 @@
         class="fixed inset-0 z-40 hidden flex-col items-center justify-center pointer-events-none opacity-0 transition-opacity duration-700 bg-black/20 backdrop-blur-sm">
 
         <div
-            class="pointer-events-auto text-center max-w-4xl px-8 py-16 w-full glass-card rounded-3xl mx-auto shadow-2xl flex flex-col items-center justify-center relative backdrop-blur-2xl bg-black/40 border-white/10 m-6">
+            class="pointer-events-auto text-center max-w-4xl px-8 py-16 w-full flat-panel rounded-none mx-auto shadow-2xl flex flex-col items-center justify-center relative backdrop-blur-2xl bg-black/40 border-white/10 m-6">
             <h2 class="text-sm uppercase tracking-[0.4em] text-white/60 mb-8 flex items-center justify-center">
                 <svg class="w-4 h-4 mr-3 text-soft-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -452,11 +456,11 @@
 
             <div class="flex space-x-4 justify-center mb-12">
                 <button id="flow-toggle"
-                    class="px-8 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10 relative z-10">
+                    class="px-8 flat-panel py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/90 border-white/10 relative z-10">
                     Enter Flow
                 </button>
                 <button id="flow-reset"
-                    class="px-6 glass py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10 relative z-10">
+                    class="px-6 flat-panel py-3 rounded-full text-lg font-medium hover:bg-white/10 transition-colors text-white/60 border-white/10 relative z-10">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
@@ -466,7 +470,7 @@
             </div>
 
             <button id="zen-complete-btn"
-                class="glass px-8 py-3 rounded-full font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors border-white/10 hidden mx-auto">
+                class="flat-panel px-8 py-3 rounded-full font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors border-white/10 hidden mx-auto">
                 <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
@@ -478,7 +482,7 @@
     <!-- Hidden Authentication Modal -->
     <div id="auth-modal"
         class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="glass-card p-8 rounded-2xl max-w-md w-full text-center">
+        <div class="flat-panel p-8 rounded-none max-w-md w-full text-center">
             <h2 class="text-xl font-bold mb-4">Google Authentication Required</h2>
             <p class="text-sm text-white/70 mb-6">Personal-OS needs permission to read your Calendar and Gmail to
                 populate the dashboard.</p>
@@ -490,10 +494,10 @@
                 <p class="text-xs text-white/50 mb-2">After authorizing, paste the code here:</p>
                 <div class="flex space-x-2">
                     <input type="text" id="auth-code-input"
-                        class="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-soft-amber"
+                        class="flex-grow bg-white/5 border border-white/10 rounded-none px-3 py-2 text-sm text-white focus:outline-none focus:border-soft-amber"
                         placeholder="Paste code...">
                     <button id="submit-auth-code"
-                        class="bg-soft-amber/20 text-soft-amber border border-soft-amber/30 px-4 py-2 rounded-lg text-sm hover:bg-soft-amber/30 transition">Submit</button>
+                        class="bg-soft-amber/20 text-soft-amber border border-soft-amber/30 px-4 py-2 rounded-none text-sm hover:bg-soft-amber/30 transition">Submit</button>
                 </div>
             </div>
         </div>
@@ -667,14 +671,14 @@
                 if (data.error) throw new Error(data.error);
 
                 authStatusEl.textContent = '● Google Connected';
-                authStatusEl.className = 'text-sm font-medium px-4 py-2 rounded-full glass border-green-500/30 text-green-400 hide-in-zen cursor-default';
+                authStatusEl.className = 'text-sm font-medium px-4 py-2 rounded-full flat-panel border-green-500/30 text-green-400 hide-in-zen cursor-default';
                 authStatusEl.onclick = null;
 
                 renderFn(data, document.getElementById(containerId));
             } catch (err) {
                 if (err.name === 'AbortError') return;
                 console.error(`Failed fetching ${endpoint}:`, err);
-                document.getElementById(containerId).innerHTML = `<div class="text-red-400 text-sm p-4 bg-red-500/10 rounded-lg border border-red-500/20">Error: ${err.message}</div>`;
+                document.getElementById(containerId).innerHTML = `<div class="text-red-400 text-sm p-4 bg-red-500/10 rounded-none border border-red-500/20">Error: ${err.message}</div>`;
             }
         }
 
@@ -749,7 +753,7 @@
                     date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'All Day';
 
                 const el = document.createElement('div');
-                el.className = `p-3 rounded-lg border ${isToday ? 'bg-blue-500/10 border-blue-500/30' : 'glass border-white/5'} flex justify-between items-start cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors`;
+                el.className = `p-3 rounded-none border ${isToday ? 'bg-blue-500/10 border-blue-500/30' : 'flat-panel border-white/5'} flex justify-between items-start cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors`;
                 el.draggable = true;
                 el.addEventListener('dragstart', (e) => {
                     el.style.opacity = '0.5';
@@ -781,7 +785,7 @@
             container.innerHTML = messages.map(msg => {
                 const title = (msg.subject || 'Email').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 return `
-                <div class="inbox-item w-full p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-lg border border-white/5 cursor-grab active:cursor-grabbing"
+                <div class="inbox-item w-full p-3 bg-white/5 hover:bg-white/10 transition-colors rounded-none border border-white/5 cursor-grab active:cursor-grabbing"
                      draggable="true" 
                      data-subject="${title}"
                      data-id="${msg.id}"
@@ -840,7 +844,7 @@
                 }).join('');
 
                 return `
-                <div class="trip-accordion glass bg-white/5 border border-white/10 rounded-xl mb-3 overflow-hidden cursor-pointer hover:bg-white/10 transition-colors">
+                <div class="trip-accordion flat-panel bg-white/5 border border-white/10 rounded-none mb-3 overflow-hidden cursor-pointer hover:bg-white/10 transition-colors">
                     <!-- Header -->
                     <div class="p-4 flex justify-between items-center select-none">
                         <div>
@@ -897,7 +901,7 @@
                 if (task.status === 'done') return; // Don't render done tasks in this minimal view
 
                 const el = document.createElement('div');
-                el.className = `task-item p-3 rounded-lg border border-white/10 ${task.status === 'doing' ? 'bg-soft-amber/10 border-soft-amber/30' : 'bg-white/5'}`;
+                el.className = `task-item p-3 rounded-none border border-white/10 ${task.status === 'doing' ? 'bg-soft-amber/10 border-soft-amber/30' : 'bg-white/5'}`;
                 el.draggable = true;
                 el.dataset.id = task.id;
 
@@ -1076,7 +1080,7 @@
 
                 rituals.forEach(ritual => {
                     const el = document.createElement('div');
-                    el.className = `group flex items-center justify-between p-2 rounded-lg transition-colors hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
+                    el.className = `group flex items-center justify-between p-2 rounded-none transition-colors hover:bg-white/5 ${ritual.completed ? 'opacity-50' : 'opacity-100'}`;
                     el.innerHTML = `
                         <label class="flex items-center space-x-3 cursor-pointer flex-1">
                             <input type="checkbox" class="form-checkbox ritual-checkbox h-4 w-4 rounded border-gray-600 bg-gray-700 text-pink-500 focus:ring-pink-500/50 cursor-pointer" 
@@ -1294,7 +1298,7 @@
                 flowComplete(); // Log time on pause
                 flowToggle.textContent = 'Resume Flow';
                 flowToggle.classList.remove('bg-white/20');
-                flowToggle.classList.add('glass');
+                flowToggle.classList.add('flat-panel');
                 document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
                 updateFlowDisplay();
             } else {
@@ -1302,7 +1306,7 @@
                 isFlowActive = true;
                 flowStartTime = Date.now();
                 flowToggle.textContent = 'Pause Flow';
-                flowToggle.classList.remove('glass');
+                flowToggle.classList.remove('flat-panel');
                 flowToggle.classList.add('bg-white/20');
                 document.querySelector('.breathing-circle').style.animationPlayState = 'running';
                 updateFlowDisplay();
@@ -1325,7 +1329,7 @@
             updateFlowDisplay();
             flowToggle.textContent = 'Enter Flow';
             flowToggle.classList.remove('bg-white/20');
-            flowToggle.classList.add('glass');
+            flowToggle.classList.add('flat-panel');
             document.querySelector('.breathing-circle').style.animationPlayState = 'paused';
         });
 
@@ -1471,7 +1475,7 @@
                     : `border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.2);`;
                 return `
                     <button data-tone="${tone}" 
-                            class="mailcraft-tone-btn glass-card text-[13px] capitalize px-4 py-2 flex items-center justify-center rounded-xl border transition-all duration-200 font-semibold tracking-wide hover:bg-white/10 focus:outline-none flex-grow-0"
+                            class="mailcraft-tone-btn flat-panel text-[13px] capitalize px-4 py-2 flex items-center justify-center rounded-none border transition-all duration-200 font-semibold tracking-wide hover:bg-white/10 focus:outline-none flex-grow-0"
                             style="${activeStyle}">
                         ${tone}
                     </button>
