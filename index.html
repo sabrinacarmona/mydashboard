@@ -657,10 +657,11 @@
         }
 
         // --- Authentication Flow ---
-        async function checkAuthAndFetch(endpoint, containerId, renderFn) {
+        async function checkAuthAndFetch(endpoint, containerId, renderFn, forceContext = null) {
             try {
                 const signal = getSignal(endpoint);
-                const res = await fetch(`${API_BASE}/${endpoint}?context=${currentContext}`, { signal });
+                const fetchContext = forceContext || currentContext;
+                const res = await fetch(`${API_BASE}/${endpoint}?context=${fetchContext}`, { signal });
                 const data = await res.json();
 
                 if (data.requiresAuth) {
@@ -1385,7 +1386,7 @@
                     } else {
                         if (tripInterval) clearInterval(tripInterval);
                     }
-                });
+                }, 'both');
             }
 
             fetchTripsLogic(); // Initial fetch
