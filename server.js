@@ -875,6 +875,7 @@ app.post('/api/trips/sync', async (req, res) => {
 
 // --- Trips Endpoint (Zero-Latency SQLite Read) ---
 app.get('/api/trips', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const context = req.query.context || 'both';
     try {
         if (context === 'both') {
@@ -916,7 +917,7 @@ app.get('/api/trips', (req, res) => {
                     const diffTime = Math.abs(currentStart - lastEnd);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                    if (diffDays <= 14) {
+                    if (diffDays <= 2) {
                         const lastBaseName = last.TripName.split(' & ')[0];
                         const currentBaseName = current.TripName.split(' & ')[0];
                         if (!last.TripName.includes(currentBaseName)) {
