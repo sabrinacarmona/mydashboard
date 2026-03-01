@@ -801,11 +801,24 @@
                 container.innerHTML = '<div class="text-sm text-white/50 p-4">No upcoming bookings found.</div>';
                 return;
             }
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}-${parts[1]}`;
+                }
+                return dateStr;
+            };
+
             container.innerHTML = groupedTrips.map((group, index) => {
                 // Determine broad dates
+                const startFormatted = formatDate(group.StartDate);
+                const endFormatted = formatDate(group.EndDate);
+
                 const dateRange = (group.StartDate && group.EndDate && group.StartDate !== group.EndDate)
-                    ? `${group.StartDate} - ${group.EndDate}`
-                    : group.StartDate;
+                    ? `${startFormatted} - ${endFormatted}`
+                    : startFormatted;
 
                 const componentsHtml = (group.Components || []).map(comp => {
                     const isHotel = comp.Type.toLowerCase().includes('hotel');
